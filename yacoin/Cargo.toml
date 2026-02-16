@@ -1,0 +1,25 @@
+[package]
+name = "yacoin"
+version = "0.1.0"
+edition = "2021"
+description = "YaCoin - High-performance blockchain with zk-SNARK privacy"
+license = "Apache-2.0"
+
+[[bin]]
+name = "yacoin"
+path = "src/main.rs"
+
+[[bin]]
+name = "yacoin-validator"
+path = "src/validator.rs"
+
+[[bin]]
+name = "yacoin-keygen"
+path = "src/keygen.rs"
+
+[[bin]]
+name = "yacoin-genesis"
+path = "src/genesis.rs"
+
+[dependencies]
+which = "6.0"

@@ -114,6 +114,14 @@ pub static BUILTINS: &[BuiltinPrototype] = &[
         program_id: solana_sdk_ids::zk_elgamal_proof_program::id(),
         entrypoint: solana_zk_elgamal_proof_program::Entrypoint::vm,
     }),
+    // YaCoin Shielded Transfer Program - enables private transactions
+    testable_prototype!(BuiltinPrototype {
+        core_bpf_migration_config: None,
+        name: yacoin_shielded_transfer_program,
+        enable_feature_id: None, // Always enabled for YaCoin
+        program_id: yacoin_shielded_transfer::id::ID,
+        entrypoint: yacoin_shielded_transfer::Entrypoint::vm,
+    }),
 ];
 
 pub static STATELESS_BUILTINS: &[StatelessBuiltinPrototype] = &[StatelessBuiltinPrototype {
@@ -335,6 +343,26 @@ pub mod test_only {
             migration_target: super::CoreBpfMigrationTargetType::Builtin,
             verified_build_hash: None,
             datapoint_name: "migrate_builtin_to_core_bpf_zk_elgamal_proof_program",
+        };
+    }
+
+    pub mod yacoin_shielded_transfer_program {
+        pub mod feature {
+            solana_pubkey::declare_id!("YaCoinShieldedTransfer111111111111111111111");
+        }
+        pub mod source_buffer {
+            solana_pubkey::declare_id!("YaCoinShieldBuf111111111111111111111111111");
+        }
+        pub mod upgrade_authority {
+            solana_pubkey::declare_id!("YaCoinShieldAuth11111111111111111111111111");
+        }
+        pub const CONFIG: super::CoreBpfMigrationConfig = super::CoreBpfMigrationConfig {
+            source_buffer_address: source_buffer::id(),
+            upgrade_authority_address: Some(upgrade_authority::id()),
+            feature_id: feature::id(),
+            migration_target: super::CoreBpfMigrationTargetType::Builtin,
+            verified_build_hash: None,
+            datapoint_name: "yacoin_shielded_transfer_program",
         };
     }
 }

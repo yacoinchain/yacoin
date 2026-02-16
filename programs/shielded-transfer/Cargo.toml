@@ -1,0 +1,70 @@
+[package]
+name = "yacoin-shielded-transfer"
+description = "YaCoin Shielded Transfer Program - zk-SNARK based private transactions"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+# Core runtime dependencies
+solana-program-runtime = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-instruction-error = { workspace = true }
+
+# Sapling cryptographic primitives
+bellman = { version = "0.14", default-features = false, features = ["groth16"] }
+bls12_381 = "0.8"
+jubjub = "0.10"
+group = { workspace = true }
+ff = "0.13"
+bitvec = "1.0"
+blake2b_simd = "1.0"
+blake2s_simd = "1.0"
+rand_core = "0.6"
+subtle = "2.5"
+zcash_proofs = { version = "0.19", optional = true }
+zcash_primitives = { version = "0.19", optional = true }
+
+# Real encryption
+chacha20poly1305 = "0.10"
+
+# Utilities
+bytemuck = { workspace = true }
+thiserror = { workspace = true }
+borsh = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+hex = "0.4"
+dirs = "5.0"
+rand = "0.8"
+bs58 = "0.5"
+bech32 = "0.9"
+
+[dev-dependencies]
+rand = "0.8"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["sapling"]
+# Enable Sapling integration
+sapling = ["dep:zcash_proofs", "dep:zcash_primitives"]
+# Enable native runtime entrypoint (for builtin deployment)
+native = ["agave-unstable-api"]
+# Disable crypto for on-chain (BPF) builds
+no-crypto = []
+# Disable entrypoint for testing
+no-entrypoint = []
+# Frozen ABI compatibility
+frozen-abi = []
+# GPU acceleration backends (optional)
+cuda = []
+opencl = []
+# Required for native programs
+agave-unstable-api = []
+
+[lints]
+workspace = true

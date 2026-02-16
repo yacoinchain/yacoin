@@ -1,0 +1,49 @@
+[package]
+name = "yacoin-cli"
+description = "YaCoin CLI for shielded transactions"
+version = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+edition = { workspace = true }
+
+[[bin]]
+name = "yacoin"
+path = "src/main.rs"
+
+[dependencies]
+# YaCoin shielded transfer
+yacoin-shielded-transfer = { path = "../programs/shielded-transfer", features = ["sapling"] }
+yacoin-shielded-wallet = { path = "../sdk/shielded-wallet" }
+
+# Core dependencies
+solana-clap-utils = { workspace = true }
+solana-cli-config = { workspace = true }
+solana-client = { workspace = true }
+solana-pubkey = { workspace = true }
+
+# CLI
+clap = { workspace = true }
+
+# Crypto
+rand = "0.8"
+hex = "0.4"
+jubjub = "0.10"
+
+# Utilities
+dirs-next = "2.0"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+borsh = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+[features]
+default = []
+
+[lints]
+workspace = true

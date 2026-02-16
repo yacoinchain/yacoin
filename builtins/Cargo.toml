@@ -27,5 +27,8 @@ solana-vote-program = { workspace = true }
 solana-zk-elgamal-proof-program = { workspace = true }
 solana-zk-token-proof-program = { workspace = true }
 
+# YaCoin shielded transfer program
+yacoin-shielded-transfer = { path = "../programs/shielded-transfer", features = ["native"] }
+
 [lints]
 workspace = true

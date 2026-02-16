@@ -134,6 +134,39 @@ impl PodScalar {
 #[repr(transparent)]
 pub struct PodGtElement(pub [u8; GT_SIZE]);
 
+impl PodGtElement {
+    /// Deserialize to a Gt element
+    pub fn to_gt(&self, endianness: Endianness) -> Option<Gt> {
+        use blst::{blst_fp, blst_fp12, blst_fp2, blst_fp6, blst_fp_from_lendian};
+
+        let mut bytes = self.0;
+
+        // If Big Endian, reverse to get LE ordering
+        if matches!(endianness, Endianness::BE) {
+            bytes.reverse();
+        }
+
+        // Parse 12 Fq elements from bytes
+        let mut fp12 = blst_fp12::default();
+        let mut ptr = bytes.as_ptr();
+
+        unsafe {
+            for fp6 in fp12.fp6.iter_mut() {
+                for fp2 in fp6.fp2.iter_mut() {
+                    // c0 then c1 in LE ordering
+                    blst_fp_from_lendian(&mut fp2.fp[0], ptr);
+                    ptr = ptr.add(FQ_SIZE);
+                    blst_fp_from_lendian(&mut fp2.fp[1], ptr);
+                    ptr = ptr.add(FQ_SIZE);
+                }
+            }
+        }
+
+        // Transmute back to Gt (safe due to repr(transparent))
+        Some(unsafe { std::mem::transmute(fp12) })
+    }
+}
+
 /// Specifies the byte ordering for BLS12-381 field elements.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Endianness {

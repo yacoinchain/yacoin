@@ -1,6 +1,7 @@
 #![cfg(feature = "agave-unstable-api")]
 pub use self::{
     cpi::{SyscallInvokeSignedC, SyscallInvokeSignedRust},
+    groth16::SyscallGroth16Verify,
     logging::{
         SyscallLog, SyscallLogBpfComputeUnits, SyscallLogData, SyscallLogPubkey, SyscallLogU64,
     },
@@ -55,6 +56,7 @@ use {
 };
 
 mod cpi;
+mod groth16;
 mod logging;
 mod mem_ops;
 mod sysvar;
@@ -421,6 +423,12 @@ pub fn create_program_runtime_environment_v1<'a, 'ix_data>(
         enable_bls12_381_syscall,
         "sol_curve_pairing_map",
         SyscallCurvePairingMap::vm,
+    )?;
+    register_feature_gated_function!(
+        result,
+        enable_bls12_381_syscall,
+        "sol_groth16_verify",
+        SyscallGroth16Verify::vm,
     )?;
 
     // Sysvars

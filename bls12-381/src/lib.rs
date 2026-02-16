@@ -30,6 +30,10 @@ pub use crate::{
         Endianness, PodG1Compressed, PodG1Point, PodG2Compressed, PodG2Point, PodGtElement,
         PodScalar,
     },
+    groth16::{
+        bls12_381_groth16_verify,
+        PodGroth16Proof, PodGroth16VerifyingKey, MAX_PUBLIC_INPUTS,
+    },
     multiplication::{bls12_381_g1_multiplication, bls12_381_g2_multiplication},
     pairing::bls12_381_pairing_map,
     subtraction::{bls12_381_g1_subtraction, bls12_381_g2_subtraction},
@@ -39,6 +43,7 @@ pub use crate::{
 pub(crate) mod addition;
 pub(crate) mod decompression;
 pub(crate) mod encoding;
+pub(crate) mod groth16;
 pub(crate) mod multiplication;
 pub(crate) mod pairing;
 pub(crate) mod subtraction;

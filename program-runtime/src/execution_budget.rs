@@ -213,6 +213,10 @@ pub struct SVMTransactionExecutionCost {
     pub bls12_381_one_pair_cost: u64,
     /// Incremental number of compute units consumed per pair in a bls12_381 pairing.
     pub bls12_381_additional_pair_cost: u64,
+    /// Number of compute units consumed to verify a Groth16 proof (4 pairings + scalar muls)
+    pub groth16_verify_cost: u64,
+    /// Incremental cost per public input in Groth16 verification
+    pub groth16_per_public_input_cost: u64,
 }
 
 impl Default for SVMTransactionExecutionCost {
@@ -275,6 +279,10 @@ impl SVMTransactionExecutionCost {
             bls12_381_g2_validate_cost: 1_968,
             bls12_381_one_pair_cost: 25_445,
             bls12_381_additional_pair_cost: 13_023,
+            // Groth16: 4 pairings = 25445 + 3*13023 = ~65k, plus scalar muls
+            groth16_verify_cost: 75_000,
+            // Each public input requires 1 scalar multiplication (~4600 CUs)
+            groth16_per_public_input_cost: 4_700,
         }
     }
 
