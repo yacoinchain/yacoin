@@ -296,6 +296,9 @@ impl ComputeBudget {
             bls12_381_g2_validate_cost: self.bls12_381_g2_validate_cost,
             bls12_381_one_pair_cost: self.bls12_381_one_pair_cost,
             bls12_381_additional_pair_cost: self.bls12_381_additional_pair_cost,
+            // Groth16 zk-SNARK verification costs (YaCoin shielded transactions)
+            groth16_verify_cost: 75_000,
+            groth16_per_public_input_cost: 4_700,
         }
     }
 
