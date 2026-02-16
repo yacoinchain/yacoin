@@ -395,6 +395,34 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
 
             Ok(())
         }
+
+        // Token shielding (SPL tokens)
+        ShieldedInstruction::ShieldToken { .. } => {
+            // TODO: Implement SPL token shielding
+            Err(InstructionError::InvalidInstructionData)
+        }
+
+        ShieldedInstruction::UnshieldToken { .. } => {
+            // TODO: Implement SPL token unshielding
+            Err(InstructionError::InvalidInstructionData)
+        }
+
+        // NFT shielding
+        ShieldedInstruction::ShieldNFT { .. } => {
+            // TODO: Implement NFT shielding
+            Err(InstructionError::InvalidInstructionData)
+        }
+
+        ShieldedInstruction::UnshieldNFT { .. } => {
+            // TODO: Implement NFT unshielding
+            Err(InstructionError::InvalidInstructionData)
+        }
+
+        // Universal shielded transfer (multi-asset)
+        ShieldedInstruction::UniversalShieldedTransfer { .. } => {
+            // TODO: Implement universal shielded transfer
+            Err(InstructionError::InvalidInstructionData)
+        }
     }
 });
 
