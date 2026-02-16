@@ -102,6 +102,14 @@ caps = { workspace = true }
 [target."cfg(unix)".dependencies]
 libc = { workspace = true }
 
+[[bin]]
+name = "agave-validator"
+path = "src/main.rs"
+
+[[bin]]
+name = "solana-test-validator"
+path = "src/bin/solana-test-validator.rs"
+
 [dev-dependencies]
 assert_cmd = { workspace = true }
 predicates = { workspace = true }
