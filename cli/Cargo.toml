@@ -16,6 +16,10 @@ targets = ["x86_64-unknown-linux-gnu"]
 name = "solana"
 path = "src/main.rs"
 
+[[bin]]
+name = "yacoin-shielded-cli"
+path = "src/bin/yacoin-shielded-cli.rs"
+
 [features]
 default = ["remote-wallet-hidraw"]
 agave-unstable-api = []
@@ -108,6 +112,12 @@ spl-memo-interface = { workspace = true }
 thiserror = { workspace = true }
 tiny-bip39 = { workspace = true }
 tokio = { workspace = true }
+
+# YaCoin shielded CLI dependencies
+rpassword = "7.3"
+dirs = "5.0"
+blake2b_simd = "1.0"
+rand = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
