@@ -250,16 +250,9 @@ fn cmd_keygen(output: Option<PathBuf>, no_passphrase: bool) -> Result<(), Box<dy
     let mut seed = [0u8; 32];
     rand::rng().fill_bytes(&mut seed);
 
-    // Get password if needed
-    let _password = if no_passphrase {
-        None
-    } else {
-        print!("Enter wallet password: ");
-        io::stdout().flush()?;
-        // For now, skip password since rpassword may not be available
-        println!("(password input skipped in this version)");
-        None
-    };
+    // Password not implemented yet
+    let _password: Option<String> = None;
+    let _ = no_passphrase; // Suppress unused warning
 
     // Determine output path
     let output_path = output.unwrap_or_else(|| {
