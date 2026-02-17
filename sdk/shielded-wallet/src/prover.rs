@@ -14,7 +14,7 @@ use std::path::PathBuf;
 
 use crate::keys::SpendingKey;
 use crate::note::Note;
-use crate::commitment::{NoteCommitment, ValueCommitment};
+use crate::commitment::NoteCommitment;  // Only for MerkleWitness::root()
 use crate::error::WalletError;
 use crate::GROTH_PROOF_SIZE;
 
@@ -31,7 +31,7 @@ use sapling_crypto::{
     Rseed,
     Node,
     keys::ExpandedSpendingKey,
-    value::{NoteValue, ValueCommitTrapdoor},
+    value::{NoteValue, ValueCommitTrapdoor, ValueCommitment as SaplingValueCommitment},
     prover::{SpendProver, OutputProver},
 };
 
@@ -186,10 +186,6 @@ impl ShieldedProver {
         let expsk = ExpandedSpendingKey::from_spending_key(&sk_bytes);
         let proof_generation_key = expsk.proof_generation_key();
 
-        // Derive nk for nullifier computation
-        let fvk = sk.to_full_viewing_key();
-        let nk = fvk.nk_bytes();
-
         // Convert our types to Sapling types
         let diversifier = SaplingDiversifier(note.diversifier);
 
@@ -216,14 +212,14 @@ impl ShieldedProver {
         OsRng.fill_bytes(&mut alpha_bytes);
         let alpha = Fr::from_bytes_wide(&alpha_bytes);
 
-        // Prepare the circuit
+        // Prepare the circuit (clone rcv_trapdoor so we can use it later for cv)
         let circuit = SpendParameters::prepare_circuit(
             proof_generation_key.clone(),
             diversifier,
             rseed,
             value,
             alpha,
-            rcv_trapdoor,
+            rcv_trapdoor.clone(),
             anchor_scalar,
             merkle_path,
         ).ok_or(WalletError::InvalidNote)?;
@@ -234,23 +230,40 @@ impl ShieldedProver {
         // Encode proof to bytes
         let proof_bytes = SpendParameters::encode_proof(proof);
 
-        // Compute value commitment
-        let cv = ValueCommitment::commit(note.value, &rcv);
+        // ============================================================
+        // USE REAL SAPLING COMMITMENTS - NOT OUR CUSTOM BROKEN CODE
+        // ============================================================
 
-        // Compute nullifier
-        let cm = note.commitment();
-        let nullifier = crate::commitment::derive_nullifier(&nk, &cm, witness.position);
+        // Create real Sapling note to get correct commitment and nullifier
+        // Build payment address
+        let mut addr_bytes = [0u8; 43];
+        addr_bytes[0..11].copy_from_slice(&note.diversifier);
+        addr_bytes[11..43].copy_from_slice(&note.pk_d);
+        let payment_address = SaplingPaymentAddress::from_bytes(&addr_bytes)
+            .ok_or(WalletError::InvalidPaymentAddress)?;
 
-        // Compute randomized verification key: rk = ak + alpha * G
+        let sapling_note = SaplingNote::from_parts(payment_address, value, rseed);
+
+        // Compute REAL value commitment using Sapling's ValueCommitment
+        // Note: derive(value, rcv) not derive(rcv, value)
+        let cv = SaplingValueCommitment::derive(value, rcv_trapdoor);
+        let cv_bytes = cv.to_bytes();
+
+        // Get the viewing key to access nk (nullifier deriving key)
         let vk = proof_generation_key.to_viewing_key();
+
+        // Get REAL nullifier from Sapling note
+        // nf = PRF_nk(rho) where rho is derived from the note position
+        let nf = sapling_note.nf(&vk.nk, witness.position);
+        let nullifier_bytes = nf.0;
         let rk = vk.rk(alpha);
         let rk_bytes: [u8; 32] = rk.into();
 
         Ok(SpendProof {
             proof: proof_bytes,
-            cv: cv.to_bytes(),
+            cv: cv_bytes,
             anchor,
-            nullifier,
+            nullifier: nullifier_bytes,
             rk: rk_bytes,
         })
     }
@@ -297,13 +310,13 @@ impl ShieldedProver {
         // rcm (note commitment randomness) - derive from rseed same way Sapling does
         let rcm = sapling_note.rcm();
 
-        // Prepare the circuit
+        // Prepare the circuit (clone rcv_trapdoor so we can use it later for cv)
         let circuit = OutputParameters::prepare_circuit(
             &esk,
             payment_address,
             rcm,
             value,
-            rcv_trapdoor,
+            rcv_trapdoor.clone(),
         );
 
         // Create the proof
@@ -312,29 +325,34 @@ impl ShieldedProver {
         // Encode proof to bytes
         let proof_bytes = OutputParameters::encode_proof(proof);
 
-        // Compute value commitment
-        let cv = ValueCommitment::commit(note.value, &rcv);
+        // ============================================================
+        // USE REAL SAPLING COMMITMENTS - NOT OUR CUSTOM BROKEN CODE
+        // ============================================================
 
-        // Compute note commitment
-        let cmu = note.commitment();
+        // Get the REAL note commitment from sapling_note (what the circuit proves)
+        let cmu_scalar = sapling_note.cmu();
+        let cmu_bytes = cmu_scalar.to_bytes();
 
-        // Compute ephemeral public key: epk = esk * g_d
-        // Since EphemeralSecretKey's inner field is not public, derive esk the same way Sapling does
-        let g_d: jubjub::ExtendedPoint = diversifier.g_d()
-            .ok_or(WalletError::InvalidDiversifier)?
-            .into();
+        // Compute REAL value commitment using Sapling's ValueCommitment
+        // Note: derive(value, rcv) not derive(rcv, value)
+        let cv = SaplingValueCommitment::derive(value, rcv_trapdoor);
+        let cv_bytes = cv.to_bytes();
 
-        // Derive esk from rseed using Sapling's PRF
+        // Compute ephemeral public key using Sapling's diversifier
+        let g_d = diversifier.g_d()
+            .ok_or(WalletError::InvalidDiversifier)?;
+
+        // Derive esk from rseed using Sapling's PRF (same as circuit uses)
         let esk_scalar = jubjub::Fr::from_bytes_wide(
             &zcash_spec::PrfExpand::SAPLING_ESK.with(&note.rseed)
         );
-        let epk_point = g_d * esk_scalar;
+        let epk_point: jubjub::ExtendedPoint = (g_d * esk_scalar).into();
         let epk_bytes = jubjub::AffinePoint::from(epk_point).to_bytes();
 
         Ok(OutputProof {
             proof: proof_bytes,
-            cv: cv.to_bytes(),
-            cmu: cmu.0,
+            cv: cv_bytes,
+            cmu: cmu_bytes,
             epk: epk_bytes,
         })
     }

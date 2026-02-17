@@ -450,6 +450,17 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
         output: output_desc,
     };
 
+    // Debug: verify serialization
+    let serialized_ix = borsh::to_vec(&instruction_data)?;
+    println!("Serialized instruction: {} bytes", serialized_ix.len());
+    println!("First byte (discriminant): {}", serialized_ix[0]);
+    println!("Bytes 1-9 (amount): {:?}", &serialized_ix[1..9]);
+    println!("Expected: discriminant=0, amount={:?}", amount.to_le_bytes());
+    // Expected size: 1 (discriminant) + 8 (amount) + 436 (OutputDescription) = 445
+    if serialized_ix.len() != 445 {
+        println!("WARNING: Unexpected instruction size! Expected 445, got {}", serialized_ix.len());
+    }
+
     let program_id = id::ID;
 
     // Derive all PDA addresses

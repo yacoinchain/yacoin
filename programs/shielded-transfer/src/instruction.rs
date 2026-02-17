@@ -287,4 +287,103 @@ mod tests {
         assert_eq!(ShieldedInstruction::ShieldedTransfer { spends: vec![], outputs: vec![], binding_sig: [0u8; 64] }.discriminant(), 2);
         assert_eq!(ShieldedInstruction::InitializePool { authority: [0u8; 32] }.discriminant(), 3);
     }
+
+    #[test]
+    fn test_shield_serialized_size() {
+        // This test verifies the expected size of a Shield instruction
+        // to help debug serialization mismatches
+        let instruction = ShieldedInstruction::Shield {
+            amount: 1000,
+            output: create_test_output(),
+        };
+
+        let serialized = borsh::to_vec(&instruction).unwrap();
+
+        // Expected size:
+        // - 1 byte: enum discriminant (u8)
+        // - 8 bytes: amount (u64)
+        // - OutputDescription:
+        //   - 32 bytes: cv
+        //   - 32 bytes: cmu
+        //   - 32 bytes: ephemeral_key
+        //   - 68 bytes: enc_ciphertext (ENC_CIPHERTEXT_SIZE)
+        //   - 80 bytes: out_ciphertext (OUT_CIPHERTEXT_SIZE)
+        //   - 192 bytes: zkproof (GROTH_PROOF_SIZE)
+        // Total: 1 + 8 + 32 + 32 + 32 + 68 + 80 + 192 = 445 bytes
+        let expected_size = 1 + 8 + 32 + 32 + 32 + ENC_CIPHERTEXT_SIZE + OUT_CIPHERTEXT_SIZE + GROTH_PROOF_SIZE;
+        assert_eq!(expected_size, 445);
+        assert_eq!(serialized.len(), expected_size, "Shield instruction size mismatch");
+
+        // First byte should be discriminant 0
+        assert_eq!(serialized[0], 0, "Wrong discriminant");
+
+        // Bytes 1-8 should be amount (1000 in little-endian)
+        let amount_bytes = &serialized[1..9];
+        assert_eq!(amount_bytes, &1000u64.to_le_bytes(), "Wrong amount encoding");
+
+        println!("Shield instruction serialized size: {} bytes", serialized.len());
+        println!("First 16 bytes: {:?}", &serialized[..16]);
+    }
+
+    #[test]
+    fn test_cross_crate_serialization() {
+        // This test simulates the exact serialization flow from CLI to native program
+        // to ensure there's no mismatch
+
+        // Create instruction exactly as CLI does
+        let instruction_data = ShieldedInstruction::Shield {
+            amount: 100_000_000, // 0.1 YAC
+            output: create_test_output(),
+        };
+
+        // Serialize with borsh::to_vec (same as CLI)
+        let serialized = borsh::to_vec(&instruction_data).expect("serialize failed");
+
+        println!("Cross-crate test:");
+        println!("  Serialized length: {}", serialized.len());
+        println!("  First 16 bytes: {:02x?}", &serialized[..16.min(serialized.len())]);
+
+        // Deserialize with try_from_slice (same as native program)
+        let deserialized = ShieldedInstruction::try_from_slice(&serialized)
+            .expect("deserialize failed - this is what native.rs does");
+
+        // Verify
+        match deserialized {
+            ShieldedInstruction::Shield { amount, output } => {
+                assert_eq!(amount, 100_000_000);
+                assert_eq!(output.cv, [1u8; 32]);
+                println!("  Deserialization successful!");
+            }
+            _ => panic!("Wrong instruction type after deserialization"),
+        }
+    }
+
+    #[test]
+    fn test_init_pool_serialization() {
+        // Also test InitializePool since that works
+        let instruction_data = ShieldedInstruction::InitializePool {
+            authority: [42u8; 32],
+        };
+
+        let serialized = borsh::to_vec(&instruction_data).expect("serialize failed");
+
+        println!("InitializePool test:");
+        println!("  Serialized length: {}", serialized.len());
+        println!("  First 16 bytes: {:02x?}", &serialized[..16.min(serialized.len())]);
+
+        // Expected: discriminant (3) + authority (32 bytes) = 33 bytes
+        assert_eq!(serialized.len(), 33);
+        assert_eq!(serialized[0], 3); // InitializePool discriminant
+
+        let deserialized = ShieldedInstruction::try_from_slice(&serialized)
+            .expect("deserialize failed");
+
+        match deserialized {
+            ShieldedInstruction::InitializePool { authority } => {
+                assert_eq!(authority, [42u8; 32]);
+                println!("  Deserialization successful!");
+            }
+            _ => panic!("Wrong instruction type after deserialization"),
+        }
+    }
 }
