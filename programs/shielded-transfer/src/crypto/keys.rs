@@ -20,7 +20,7 @@ fn subgroup_to_affine(point: &SubgroupPoint) -> AffinePoint {
 }
 
 /// Domain separators
-const PRF_EXPAND_DOMAIN: &[u8; 16] = b"Zcash_ExpandSeed";
+const PRF_EXPAND_DOMAIN: &[u8; 16] = b"YaCoin_ExpandSeed";
 const CRH_IVK_DOMAIN: &[u8; 8] = b"Zcashivk";
 
 /// Spending key - the master secret
@@ -228,7 +228,7 @@ impl Diversifier {
         // Use a hash-to-curve approach
         let mut hasher = Blake2sParams::new()
             .hash_length(32)
-            .personal(b"Zcash_gd")
+            .personal(b"YaCoin_gd")
             .to_state();
 
         hasher.update(&self.0);

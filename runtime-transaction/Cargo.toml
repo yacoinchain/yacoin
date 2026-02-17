@@ -1,5 +1,5 @@
 [package]
-name = "solana-runtime-transaction"
+name = "yacoin-runtime-transaction"
 description = "Solana runtime-transaction"
 documentation = "https://docs.rs/solana-runtime-transaction"
 version = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "solana-poh-bench"
+name = "yacoin-poh-bench"
 documentation = "https://docs.rs/solana-poh-bench"
 publish = false
 version = { workspace = true }

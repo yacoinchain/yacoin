@@ -398,7 +398,7 @@ fn compute_note_commitment(
 
     let hash = Params::new()
         .hash_length(32)
-        .personal(b"Zcash_gd")
+        .personal(b"YaCoin_gd")
         .to_state()
         .update(diversifier)
         .update(pk_d)
@@ -417,7 +417,7 @@ fn compute_epk(diversifier: &[u8; 11], esk: &jubjub::Fr) -> [u8; 32] {
 
     let hash = Params::new()
         .hash_length(32)
-        .personal(b"Zcash_gd")
+        .personal(b"YaCoin_gd")
         .to_state()
         .update(diversifier)
         .update(&esk.to_bytes())
@@ -434,7 +434,7 @@ fn compute_nullifier(nsk: &[u8; 32], rcm: &[u8; 32], position: u64) -> [u8; 32] 
 
     let hash = Params::new()
         .hash_length(32)
-        .personal(b"Zcash_nf")
+        .personal(b"YaCoin_nf")
         .to_state()
         .update(nsk)
         .update(rcm)
@@ -457,7 +457,7 @@ pub fn create_binding_signature(
 
     let sig_hash = Params::new()
         .hash_length(64)
-        .personal(b"Zcash_RedJupsig")
+        .personal(b"YaCoin_RedJupsig")
         .to_state()
         .update(spend_cv_sum)
         .update(output_cv_sum)

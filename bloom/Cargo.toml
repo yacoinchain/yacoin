@@ -1,5 +1,5 @@
 [package]
-name = "solana-bloom"
+name = "yacoin-bloom"
 description = "Solana bloom filter"
 documentation = "https://docs.rs/solana-bloom"
 version = { workspace = true }

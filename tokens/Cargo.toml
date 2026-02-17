@@ -1,5 +1,5 @@
 [package]
-name = "solana-tokens"
+name = "yacoin-tokens"
 documentation = "https://docs.rs/solana-tokens"
 version = { workspace = true }
 authors = { workspace = true }

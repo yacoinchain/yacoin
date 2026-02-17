@@ -11,7 +11,7 @@ use group::cofactor::CofactorGroup;
 use blake2s_simd::Params as Blake2sParams;
 
 /// Domain separator for note commitments
-const NOTE_COMMITMENT_DOMAIN: &[u8; 8] = b"Zcash_NC"; // Use Zcash domain for compatibility
+const NOTE_COMMITMENT_DOMAIN: &[u8; 8] = b"YaCoin_NC"; // Use Zcash domain for compatibility
 
 /// The Sapling value commitment generator V (from Zcash spec)
 /// This is a nothing-up-my-sleeve point derived from hashing
@@ -20,7 +20,7 @@ fn value_commitment_value_generator() -> SubgroupPoint {
     // This matches the Zcash Sapling specification
     let hash = Blake2sParams::new()
         .hash_length(32)
-        .personal(b"Zcash_cv")
+        .personal(b"YaCoin_cv")
         .to_state()
         .update(b"v")
         .finalize();
@@ -32,7 +32,7 @@ fn value_commitment_value_generator() -> SubgroupPoint {
 fn value_commitment_randomness_generator() -> SubgroupPoint {
     let hash = Blake2sParams::new()
         .hash_length(32)
-        .personal(b"Zcash_cv")
+        .personal(b"YaCoin_cv")
         .to_state()
         .update(b"r")
         .finalize();
@@ -46,7 +46,7 @@ fn hash_to_point(input: &[u8]) -> SubgroupPoint {
     loop {
         let mut hasher = Blake2sParams::new()
             .hash_length(32)
-            .personal(b"Zcash_gd")
+            .personal(b"YaCoin_gd")
             .to_state();
         hasher.update(input);
         hasher.update(&[counter]);
@@ -90,7 +90,7 @@ impl PedersenHash {
     pub fn merkle_hash(depth: usize, left: &[u8; 32], right: &[u8; 32]) -> Self {
         // Domain separation: include depth in personalization
         let mut personalization = [0u8; 8];
-        personalization[..6].copy_from_slice(b"Zcash_");
+        personalization[..6].copy_from_slice(b"YaCoin_");
         personalization[6] = b'M';
         personalization[7] = depth as u8;
 
@@ -139,7 +139,7 @@ impl NoteCommitment {
         rcm: &Fr,
     ) -> Self {
         // In Sapling, note commitment uses:
-        // cm = PedersenHash("Zcash_NC", g_d || pk_d || value) + rcm * H
+        // cm = PedersenHash("YaCoin_NC", g_d || pk_d || value) + rcm * H
         // where H is a nothing-up-my-sleeve generator
 
         // First, compute the inner hash (this binds to the note contents)
@@ -296,7 +296,7 @@ pub fn derive_nullifier(
 ) -> [u8; 32] {
     let mut hasher = Blake2sParams::new()
         .hash_length(32)
-        .personal(b"Zcash_nf")
+        .personal(b"YaCoin_nf")
         .to_state();
 
     hasher.update(nk);

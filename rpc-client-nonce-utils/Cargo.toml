@@ -1,5 +1,5 @@
 [package]
-name = "solana-rpc-client-nonce-utils"
+name = "yacoin-rpc-client-nonce-utils"
 description = "Solana RPC Client Nonce Utilities"
 documentation = "https://docs.rs/solana-rpc-client-nonce-utils"
 version = { workspace = true }

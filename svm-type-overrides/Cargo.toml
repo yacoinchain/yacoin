@@ -1,5 +1,5 @@
 [package]
-name = "solana-svm-type-overrides"
+name = "yacoin-svm-type-overrides"
 description = "Type overrides for specialized testing"
 version = { workspace = true }
 authors = { workspace = true }

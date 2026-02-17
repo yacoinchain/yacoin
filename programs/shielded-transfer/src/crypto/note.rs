@@ -270,7 +270,7 @@ impl EncryptedNote {
 fn kdf_sapling(shared_secret: &[u8; 32], epk: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Blake2bParams::new()
         .hash_length(32)
-        .personal(b"Zcash_SaplingKDF")
+        .personal(b"YaCoin_SaplingKDF")
         .to_state();
 
     hasher.update(shared_secret);
@@ -286,7 +286,7 @@ fn kdf_sapling(shared_secret: &[u8; 32], epk: &[u8; 32]) -> [u8; 32] {
 fn derive_rcm(rseed: &[u8; 32]) -> Fr {
     let mut hasher = Blake2bParams::new()
         .hash_length(32)
-        .personal(b"Zcash_rcm_______")
+        .personal(b"YaCoin_rcm_______")
         .to_state();
 
     hasher.update(rseed);
@@ -301,7 +301,7 @@ fn derive_rcm(rseed: &[u8; 32]) -> Fr {
 fn derive_ock(ovk: &OutgoingViewingKey, cv: &[u8; 32], cmu: &[u8; 32], epk: &[u8; 32]) -> [u8; 32] {
     let mut hasher = Blake2bParams::new()
         .hash_length(32)
-        .personal(b"Zcash_Derive_ock")
+        .personal(b"YaCoin_Derive_ock")
         .to_state();
 
     hasher.update(&ovk.ovk);

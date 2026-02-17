@@ -1,5 +1,5 @@
 [package]
-name = "solana-storage-bigtable"
+name = "yacoin-storage-bigtable"
 description = "Solana Storage BigTable"
 documentation = "https://docs.rs/solana-storage-bigtable"
 version = { workspace = true }

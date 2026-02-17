@@ -1,5 +1,5 @@
 [package]
-name = "solana-tps-client"
+name = "yacoin-tps-client"
 version = { workspace = true }
 authors = { workspace = true }
 description = { workspace = true }

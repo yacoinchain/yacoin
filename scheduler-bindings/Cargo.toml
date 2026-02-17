@@ -1,5 +1,5 @@
 [package]
-name = "agave-scheduler-bindings"
+name = "yacoin-scheduler-bindings"
 description = "Agave scheduler-binding message types for external pack process integration"
 documentation = "https://docs.rs/agave-scheduler-bindings"
 version = { workspace = true }

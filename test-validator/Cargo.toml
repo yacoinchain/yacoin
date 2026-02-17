@@ -1,5 +1,5 @@
 [package]
-name = "solana-test-validator"
+name = "yacoin-test-validator"
 version = { workspace = true }
 authors = { workspace = true }
 description = { workspace = true }

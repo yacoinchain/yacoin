@@ -1,6 +1,6 @@
 [package]
 description = "Solana Program Test Framework"
-name = "solana-program-test"
+name = "yacoin-program-test"
 version = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }

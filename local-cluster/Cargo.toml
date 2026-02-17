@@ -1,5 +1,5 @@
 [package]
-name = "solana-local-cluster"
+name = "yacoin-local-cluster"
 documentation = "https://docs.rs/solana-local-cluster"
 version = { workspace = true }
 authors = { workspace = true }

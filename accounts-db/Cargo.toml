@@ -1,5 +1,5 @@
 [package]
-name = "solana-accounts-db"
+name = "yacoin-accounts-db"
 description = "Solana accounts db"
 documentation = "https://docs.rs/solana-accounts-db"
 version = { workspace = true }

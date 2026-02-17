@@ -1,5 +1,5 @@
 [package]
-name = "solana-sbf-rust-account-mem"
+name = "yacoin-sbf-rust-account-mem"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

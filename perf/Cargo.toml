@@ -1,5 +1,5 @@
 [package]
-name = "solana-perf"
+name = "yacoin-perf"
 description = "Solana Performance APIs"
 documentation = "https://docs.rs/solana-perf"
 version = { workspace = true }

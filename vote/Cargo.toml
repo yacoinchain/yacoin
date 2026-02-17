@@ -1,5 +1,5 @@
 [package]
-name = "solana-vote"
+name = "yacoin-vote"
 description = "Solana vote"
 documentation = "https://docs.rs/solana-vote"
 version = { workspace = true }

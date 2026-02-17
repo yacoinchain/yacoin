@@ -1,5 +1,5 @@
 [package]
-name = "solana-sbf-rust-deprecated-loader"
+name = "yacoin-sbf-rust-deprecated-loader"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

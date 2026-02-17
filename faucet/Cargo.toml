@@ -1,5 +1,5 @@
 [package]
-name = "solana-faucet"
+name = "yacoin-faucet"
 description = "Solana Faucet"
 documentation = "https://docs.rs/solana-faucet"
 version = { workspace = true }
@@ -17,7 +17,7 @@ crate-type = ["lib"]
 name = "solana_faucet"
 
 [[bin]]
-name = "solana-faucet"
+name = "yacoin-faucet"
 path = "src/bin/faucet.rs"
 required-features = ["agave-unstable-api"]
 

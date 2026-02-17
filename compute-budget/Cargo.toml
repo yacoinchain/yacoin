@@ -1,5 +1,5 @@
 [package]
-name = "solana-compute-budget"
+name = "yacoin-compute-budget"
 description = "Solana compute budget"
 documentation = "https://docs.rs/solana-compute-budget"
 version = { workspace = true }

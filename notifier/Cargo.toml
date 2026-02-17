@@ -1,5 +1,5 @@
 [package]
-name = "solana-notifier"
+name = "yacoin-notifier"
 description = "Solana Notifier"
 documentation = "https://docs.rs/solana-notifier"
 version = { workspace = true }

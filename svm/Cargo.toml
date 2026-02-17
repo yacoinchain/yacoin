@@ -1,5 +1,5 @@
 [package]
-name = "solana-svm"
+name = "yacoin-svm"
 description = "Solana SVM"
 documentation = "https://docs.rs/solana-svm"
 version = { workspace = true }

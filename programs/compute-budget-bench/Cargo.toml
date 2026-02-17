@@ -1,5 +1,5 @@
 [package]
-name = "solana-compute-budget-program-bench"
+name = "yacoin-compute-budget-program-bench"
 publish = false
 version = { workspace = true }
 authors = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "solana-storage-proto"
+name = "yacoin-storage-proto"
 description = "Solana Storage Protobuf Definitions"
 documentation = "https://docs.rs/solana-storage-proto"
 version = { workspace = true }

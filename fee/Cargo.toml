@@ -1,5 +1,5 @@
 [package]
-name = "solana-fee"
+name = "yacoin-fee"
 description = "Solana fee calculation"
 documentation = "https://docs.rs/solana-fee"
 version = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "solana-metrics"
+name = "yacoin-metrics"
 description = "Solana Metrics"
 documentation = "https://docs.rs/solana-metrics"
 version = { workspace = true }

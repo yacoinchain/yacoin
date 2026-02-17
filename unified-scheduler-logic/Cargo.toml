@@ -1,5 +1,5 @@
 [package]
-name = "solana-unified-scheduler-logic"
+name = "yacoin-unified-scheduler-logic"
 description = "The Solana unified scheduler logic"
 documentation = "https://docs.rs/solana-unified-scheduler-logic"
 version = { workspace = true }

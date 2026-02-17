@@ -1,5 +1,5 @@
 [package]
-name = "solana-sbf-rust-big-mod-exp"
+name = "yacoin-sbf-rust-big-mod-exp"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

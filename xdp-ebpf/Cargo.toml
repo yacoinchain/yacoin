@@ -1,5 +1,5 @@
 [package]
-name = "agave-xdp-ebpf"
+name = "yacoin-xdp-ebpf"
 version = { workspace = true }
 authors = { workspace = true }
 description = { workspace = true }
@@ -10,7 +10,7 @@ edition = { workspace = true }
 include = ["Cargo.toml", "src/**", "README", "agave-xdp-prog"]
 
 [[bin]]
-name = "agave-xdp-prog"
+name = "yacoin-xdp-prog"
 path = "src/bin/agave-xdp-prog.rs"
 required-features = ["ebpf"]
 

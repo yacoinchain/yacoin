@@ -1,5 +1,5 @@
 [package]
-name = "solana-sbf-rust-call-args"
+name = "yacoin-sbf-rust-call-args"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

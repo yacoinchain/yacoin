@@ -1,5 +1,5 @@
 [package]
-name = "solana-sbf-rust-invoke-and-error"
+name = "yacoin-sbf-rust-invoke-and-error"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

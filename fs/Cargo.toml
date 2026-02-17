@@ -1,5 +1,5 @@
 [package]
-name = "agave-fs"
+name = "yacoin-fs"
 description = "Agave file system utils"
 documentation = "https://docs.rs/agave-fs"
 version = { workspace = true }

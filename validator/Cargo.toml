@@ -1,8 +1,8 @@
 [package]
-name = "agave-validator"
+name = "yacoin-validator"
 readme = "../README.md"
 documentation = "https://docs.rs/agave-validator"
-default-run = "agave-validator"
+default-run = "yacoin-validator"
 version = { workspace = true }
 authors = { workspace = true }
 description = { workspace = true }
@@ -103,11 +103,11 @@ caps = { workspace = true }
 libc = { workspace = true }
 
 [[bin]]
-name = "agave-validator"
+name = "yacoin-validator"
 path = "src/main.rs"
 
 [[bin]]
-name = "solana-test-validator"
+name = "yacoin-test-validator"
 path = "src/bin/solana-test-validator.rs"
 
 [dev-dependencies]

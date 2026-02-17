@@ -1,5 +1,5 @@
 [package]
-name = "solana-gossip"
+name = "yacoin-gossip"
 documentation = "https://docs.rs/solana-gossip"
 version = { workspace = true }
 authors = { workspace = true }

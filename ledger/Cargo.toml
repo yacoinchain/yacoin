@@ -1,5 +1,5 @@
 [package]
-name = "solana-ledger"
+name = "yacoin-ledger"
 description = "Solana ledger"
 documentation = "https://docs.rs/solana-ledger"
 version = { workspace = true }

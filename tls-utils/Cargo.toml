@@ -1,5 +1,5 @@
 [package]
-name = "solana-tls-utils"
+name = "yacoin-tls-utils"
 description = "Solana TLS utilities"
 documentation = "https://docs.rs/solana-tls-utils"
 version = { workspace = true }

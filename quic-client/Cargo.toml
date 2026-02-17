@@ -1,5 +1,5 @@
 [package]
-name = "solana-quic-client"
+name = "yacoin-quic-client"
 description = "Solana Quic Client"
 documentation = "https://docs.rs/solana-quic-client"
 version = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "solana-rpc"
+name = "yacoin-rpc"
 description = "Solana RPC"
 documentation = "https://docs.rs/solana-rpc"
 version = { workspace = true }

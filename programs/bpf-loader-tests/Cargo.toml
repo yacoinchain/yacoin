@@ -2,7 +2,7 @@
 # solana-bpf-loader-program -> solana-program-test -> solana-bpf-loader-program
 
 [package]
-name = "solana-bpf-loader-program-tests"
+name = "yacoin-bpf-loader-program-tests"
 publish = false
 version = { workspace = true }
 authors = { workspace = true }

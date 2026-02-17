@@ -1,5 +1,5 @@
 [package]
-name = "solana-poh"
+name = "yacoin-poh"
 description = "Solana PoH"
 documentation = "https://docs.rs/solana-poh"
 version = { workspace = true }

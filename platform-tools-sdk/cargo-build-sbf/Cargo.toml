@@ -1,5 +1,5 @@
 [package]
-name = "solana-cargo-build-sbf"
+name = "yacoin-cargo-build-sbf"
 description = "Compile a local package and all of its dependencies using the Solana SBF SDK"
 publish = false
 version = { workspace = true }

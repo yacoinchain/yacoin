@@ -1,5 +1,5 @@
 [package]
-name = "solana-loader-v4-program"
+name = "yacoin-loader-v4-program"
 description = "Solana Loader v4"
 version = { workspace = true }
 authors = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "agave-syscalls"
+name = "yacoin-syscalls"
 description = "Agave implementation of the Solana syscalls."
 documentation = "https://docs.rs/agave-syscalls"
 version = { workspace = true }

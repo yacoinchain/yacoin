@@ -1,5 +1,5 @@
 [package]
-name = "solana-tpu-client"
+name = "yacoin-tpu-client"
 description = "Solana TPU Client"
 documentation = "https://docs.rs/solana-tpu-client"
 version = { workspace = true }

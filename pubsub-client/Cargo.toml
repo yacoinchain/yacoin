@@ -1,5 +1,5 @@
 [package]
-name = "solana-pubsub-client"
+name = "yacoin-pubsub-client"
 description = "Solana Pubsub Client"
 documentation = "https://docs.rs/solana-pubsub-client"
 version = { workspace = true }

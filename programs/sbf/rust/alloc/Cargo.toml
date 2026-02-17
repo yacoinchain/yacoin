@@ -1,5 +1,5 @@
 [package]
-name = "solana-sbf-rust-alloc"
+name = "yacoin-sbf-rust-alloc"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

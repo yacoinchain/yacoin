@@ -1,5 +1,5 @@
 [package]
-name = "agave-random"
+name = "yacoin-random"
 description = "Agave randomization utils"
 documentation = "https://docs.rs/agave-random"
 version = { workspace = true }

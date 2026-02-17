@@ -1,5 +1,5 @@
 [package]
-name = "agave-geyser-plugin-interface"
+name = "yacoin-geyser-plugin-interface"
 description = "The Solana Geyser plugin interface."
 documentation = "https://docs.rs/agave-geyser-plugin-interface"
 version = { workspace = true }

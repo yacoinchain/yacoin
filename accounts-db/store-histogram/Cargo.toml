@@ -1,5 +1,5 @@
 [package]
-name = "agave-store-histogram"
+name = "yacoin-store-histogram"
 description = "Tool to calculate account storage histogram"
 publish = false
 version = { workspace = true }

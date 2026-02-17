@@ -1,5 +1,5 @@
 [package]
-name = "solana-account-decoder-client-types"
+name = "yacoin-account-decoder-client-types"
 description = "Core RPC client types for solana-account-decoder"
 documentation = "https://docs.rs/solana-account-decoder-client-types"
 version = { workspace = true }

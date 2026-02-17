@@ -1,5 +1,5 @@
 [package]
-name = "solana-turbine"
+name = "yacoin-turbine"
 documentation = "https://docs.rs/solana-turbine"
 version = { workspace = true }
 authors = { workspace = true }

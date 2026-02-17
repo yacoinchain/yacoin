@@ -1,5 +1,5 @@
 [package]
-name = "agave-snapshots"
+name = "yacoin-snapshots"
 description = "Agave snapshot utils"
 documentation = "https://docs.rs/agave-snapshots"
 version = { workspace = true }
