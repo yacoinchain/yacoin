@@ -87,6 +87,15 @@ else
     SPL_GENESIS_ARGS=$(cat spl-genesis-args.sh)
   fi
 
+  # Generate shielded pool genesis accounts
+  echo "Generating shielded pool genesis accounts..."
+  if yacoin-shielded-cli genesis-accounts -o shielded-pool-genesis.yaml 2>/dev/null; then
+    SHIELDED_GENESIS_ARGS="--primordial-accounts-file shielded-pool-genesis.yaml"
+  else
+    echo "Warning: Could not generate shielded pool accounts"
+    SHIELDED_GENESIS_ARGS=""
+  fi
+
   # shellcheck disable=SC2086
   yacoin-genesis \
     --hashes-per-tick sleep \
@@ -99,6 +108,7 @@ else
     --cluster-type "$SOLANA_RUN_SH_CLUSTER_TYPE" \
     $CORE_BPF_GENESIS_ARGS \
     $SPL_GENESIS_ARGS \
+    $SHIELDED_GENESIS_ARGS \
     $SOLANA_RUN_SH_GENESIS_ARGS
 fi
 
