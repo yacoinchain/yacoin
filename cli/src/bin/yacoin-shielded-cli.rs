@@ -342,6 +342,7 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     use solana_transaction::Transaction;
     use solana_message::Message;
     use solana_instruction::Instruction;
+    use solana_compute_budget_interface::ComputeBudgetInstruction;
     use yacoin_shielded_transfer::{OutputDescription, ShieldedInstruction, id, ENC_CIPHERTEXT_SIZE, OUT_CIPHERTEXT_SIZE};
     use yacoin_shielded_wallet::prover::{ShieldedProver, get_params_dir};
     use yacoin_shielded_wallet::keys::SpendingKey;
@@ -428,7 +429,7 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     let (pool_address, _) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
     let (tree_address, _) = Pubkey::find_program_address(&[b"commitment_tree"], &program_id);
 
-    let instruction = Instruction {
+    let shield_instruction = Instruction {
         program_id,
         accounts: vec![
             solana_instruction::AccountMeta::new(payer.pubkey(), true),
@@ -438,6 +439,9 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
         data: borsh::to_vec(&instruction_data)?,
     };
 
+    // Request more compute units for zk-SNARK verification (1.4M CU)
+    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_400_000);
+
     println!("Submitting transaction...");
 
     // Connect to RPC
@@ -446,8 +450,8 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     // Get recent blockhash
     let blockhash = client.get_latest_blockhash()?;
 
-    // Build transaction
-    let message = Message::new(&[instruction], Some(&payer.pubkey()));
+    // Build transaction with compute budget first
+    let message = Message::new(&[compute_budget_ix, shield_instruction], Some(&payer.pubkey()));
     let mut tx = Transaction::new_unsigned(message);
     tx.sign(&[&payer], blockhash);
 
