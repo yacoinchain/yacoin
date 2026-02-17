@@ -23,10 +23,10 @@ fi
 PATH=$PWD/target/$profile:$PATH
 
 ok=true
-for program in solana-{faucet,genesis,keygen}; do
+for program in yacoin-{faucet,genesis,keygen}; do
   $program -V || ok=false
 done
-agave-validator -V || ok=false
+yacoin-validator -V || ok=false
 
 $ok || {
   echo
@@ -45,27 +45,27 @@ ledgerDir=$PWD/config/ledger
 SOLANA_RUN_SH_CLUSTER_TYPE=${SOLANA_RUN_SH_CLUSTER_TYPE:-development}
 
 set -x
-if ! solana address; then
+if ! yacoin address; then
   echo Generating default keypair
-  solana-keygen new --no-passphrase
+  yacoin-keygen new --no-passphrase
 fi
 validator_identity="$dataDir/validator-identity.json"
 if [[ -e $validator_identity ]]; then
   echo "Use existing validator keypair"
 else
-  solana-keygen new --no-passphrase -so "$validator_identity"
+  yacoin-keygen new --no-passphrase -so "$validator_identity"
 fi
 validator_vote_account="$dataDir/validator-vote-account.json"
 if [[ -e $validator_vote_account ]]; then
   echo "Use existing validator vote account keypair"
 else
-  solana-keygen new --no-passphrase -so "$validator_vote_account"
+  yacoin-keygen new --no-passphrase -so "$validator_vote_account"
 fi
 validator_stake_account="$dataDir/validator-stake-account.json"
 if [[ -e $validator_stake_account ]]; then
   echo "Use existing validator stake account keypair"
 else
-  solana-keygen new --no-passphrase -so "$validator_stake_account"
+  yacoin-keygen new --no-passphrase -so "$validator_stake_account"
 fi
 
 if [[ -e "$ledgerDir"/genesis.bin || -e "$ledgerDir"/genesis.tar.bz2 ]]; then
@@ -82,7 +82,7 @@ else
   fi
 
   # shellcheck disable=SC2086
-  solana-genesis \
+  yacoin-genesis \
     --hashes-per-tick sleep \
     --faucet-lamports 500000000000000000 \
     --bootstrap-validator \
@@ -103,7 +103,7 @@ abort() {
 }
 trap abort INT TERM EXIT
 
-solana-faucet &
+yacoin-faucet &
 faucet=$!
 
 args=(
@@ -123,7 +123,7 @@ args=(
   --no-os-network-limits-test
 )
 # shellcheck disable=SC2086
-agave-validator "${args[@]}" $SOLANA_RUN_SH_VALIDATOR_ARGS &
+yacoin-validator "${args[@]}" $SOLANA_RUN_SH_VALIDATOR_ARGS &
 validator=$!
 
 wait "$validator"
