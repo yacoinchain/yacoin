@@ -1,15 +1,13 @@
 //! Incremental Merkle Tree for Note Commitments
 //!
-//! This implements a Pedersen-hash based Merkle tree for YaCoin shielded transactions.
+//! This implements a blake2s-based Merkle tree for YaCoin shielded transactions.
 //! The tree has depth 32, allowing for ~4 billion notes.
 //!
-//! Uses real Jubjub curve Pedersen hashing for cryptographic security.
+//! TODO: Replace with sapling-crypto / incrementalmerkletree for production.
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use crate::error::ShieldedTransferError;
 use blake2s_simd::Params;
-use jubjub::{ExtendedPoint, Fr, SubgroupPoint};
-use group::prime::PrimeCurveAffine;
 
 /// Depth of the commitment tree (2^32 = ~4 billion notes)
 pub const TREE_DEPTH: usize = 32;
@@ -17,73 +15,41 @@ pub const TREE_DEPTH: usize = 32;
 /// Domain separator for Merkle tree hashing
 const MERKLE_HASH_DOMAIN: &[u8; 8] = b"YaCoinMH";
 
-/// Pedersen hash generators (computed lazily)
-/// These are fixed points on Jubjub used for hashing
-mod generators {
-    use super::*;
-    use std::sync::OnceLock;
+/// Simple blake2s hash for Merkle tree nodes
+/// This replaces Pedersen hash for now - works in native runtime
+pub fn merkle_hash(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
+    let hash = Params::new()
+        .hash_length(32)
+        .personal(MERKLE_HASH_DOMAIN)
+        .to_state()
+        .update(left)
+        .update(right)
+        .finalize();
 
-    /// Generator for left input
-    static G_LEFT: OnceLock<SubgroupPoint> = OnceLock::new();
-    /// Generator for right input
-    static G_RIGHT: OnceLock<SubgroupPoint> = OnceLock::new();
+    let mut output = [0u8; 32];
+    output.copy_from_slice(hash.as_bytes());
+    output
+}
 
-    /// Get the left generator point
-    pub fn g_left() -> SubgroupPoint {
-        *G_LEFT.get_or_init(|| {
-            // Derive from domain separator using hash-to-curve
-            hash_to_curve(b"YaCoin_G_left___")
-        })
-    }
-
-    /// Get the right generator point
-    pub fn g_right() -> SubgroupPoint {
-        *G_RIGHT.get_or_init(|| {
-            hash_to_curve(b"YaCoin_G_right__")
-        })
-    }
-
-    /// Hash to a Jubjub curve point (simplified)
-    fn hash_to_curve(domain: &[u8; 16]) -> SubgroupPoint {
-        use blake2s_simd::Params;
-        use group::Group;
-
-        // Use blake2s to derive point coordinates
-        let hash = Params::new()
-            .hash_length(32)
-            .personal(b"YaCoin_H")
-            .to_state()
-            .update(domain)
-            .finalize();
-
-        // Try to decode as a point (may not be on curve)
-        // In production, use proper hash-to-curve
-        let mut bytes = [0u8; 32];
-        bytes.copy_from_slice(hash.as_bytes());
-
-        // Use the generator point scaled by the hash as a simple derivation
-        let scalar = Fr::from_bytes(&bytes).unwrap_or(Fr::one());
-        // Get generator via Group trait
-        SubgroupPoint::generator() * scalar
-    }
+/// Alias for backward compatibility
+pub fn pedersen_hash(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
+    merkle_hash(left, right)
 }
 
 /// Precomputed empty roots for each tree level
-/// These are the roots of subtrees with no commitments
 mod empty_roots {
     use super::*;
 
-    /// Compute empty roots on demand (avoids OnceLock issues in native runtime)
+    /// Compute empty roots on demand
     pub fn get() -> [[u8; 32]; 33] {
         let mut roots = [[0u8; 32]; 33];
 
-        // Level 0: empty leaf - use non-zero value for debugging
-        // This ensures we can distinguish "properly initialized" from "uninitialized"
-        roots[0] = [0x01; 32];
+        // Level 0: empty leaf (zeros)
+        roots[0] = [0u8; 32];
 
         // Each level is hash of two children from level below
         for i in 1..=TREE_DEPTH {
-            roots[i] = pedersen_hash_inner(&roots[i - 1], &roots[i - 1]);
+            roots[i] = merkle_hash(&roots[i - 1], &roots[i - 1]);
         }
 
         roots
@@ -165,7 +131,7 @@ impl IncrementalMerkleTree {
                 } else {
                     empty_roots::get()[depth]
                 };
-                current = pedersen_hash(&left, &current);
+                current = merkle_hash(&left, &current);
             } else {
                 // We're a left child, store in frontier and combine with empty
                 if depth >= self.frontier.len() {
@@ -173,7 +139,7 @@ impl IncrementalMerkleTree {
                 } else {
                     self.frontier[depth] = current;
                 }
-                current = pedersen_hash(&current, &empty_roots::get()[depth]);
+                current = merkle_hash(&current, &empty_roots::get()[depth]);
             }
 
             depth = depth.saturating_add(1);
@@ -255,10 +221,10 @@ impl MerkleWitness {
         for i in 0..TREE_DEPTH {
             if self.position[i] {
                 // We're on the right
-                current = pedersen_hash(&self.path[i], &current);
+                current = merkle_hash(&self.path[i], &current);
             } else {
                 // We're on the left
-                current = pedersen_hash(&current, &self.path[i]);
+                current = merkle_hash(&current, &self.path[i]);
             }
         }
 
@@ -323,51 +289,8 @@ impl RecentAnchors {
     }
 }
 
-/// Pedersen hash function for Merkle tree
-/// Uses Jubjub curve scalar multiplication
-fn pedersen_hash_inner(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
-    // Convert inputs to scalars
-    let left_scalar = bytes_to_scalar(left);
-    let right_scalar = bytes_to_scalar(right);
-
-    // Compute: left_scalar * G_left + right_scalar * G_right
-    let g_left = generators::g_left();
-    let g_right = generators::g_right();
-
-    let point: ExtendedPoint = (g_left * left_scalar + g_right * right_scalar).into();
-
-    // Extract the x-coordinate as the hash output
-    let affine = jubjub::AffinePoint::from(point);
-    let u = affine.get_u();
-    u.to_bytes()
-}
-
-/// Public Pedersen hash function
-pub fn pedersen_hash(left: &[u8; 32], right: &[u8; 32]) -> [u8; 32] {
-    // Use blake2s as a compression function with the Pedersen hash result
-    // This provides extra security and domain separation
-    let pedersen_result = pedersen_hash_inner(left, right);
-
-    let hash = Params::new()
-        .hash_length(32)
-        .personal(MERKLE_HASH_DOMAIN)
-        .to_state()
-        .update(&pedersen_result)
-        .update(left)
-        .update(right)
-        .finalize();
-
-    let mut output = [0u8; 32];
-    output.copy_from_slice(hash.as_bytes());
-    output
-}
-
-/// Convert 32 bytes to a Jubjub scalar
-fn bytes_to_scalar(bytes: &[u8; 32]) -> Fr {
-    // Use the bytes directly as a scalar representation
-    // Fr::from_bytes handles reduction if necessary
-    Fr::from_bytes(bytes).unwrap_or(Fr::zero())
-}
+// Old Pedersen hash code removed - using pure blake2s merkle_hash defined at top of file
+// TODO: Replace with sapling-crypto for production
 
 #[cfg(test)]
 mod tests {
@@ -404,25 +327,25 @@ mod tests {
     }
 
     #[test]
-    fn test_pedersen_hash_deterministic() {
+    fn test_merkle_hash_deterministic() {
         let left = [1u8; 32];
         let right = [2u8; 32];
 
-        let hash1 = pedersen_hash(&left, &right);
-        let hash2 = pedersen_hash(&left, &right);
+        let hash1 = merkle_hash(&left, &right);
+        let hash2 = merkle_hash(&left, &right);
 
         assert_eq!(hash1, hash2);
     }
 
     #[test]
-    fn test_pedersen_hash_different_inputs() {
+    fn test_merkle_hash_different_inputs() {
         let a = [1u8; 32];
         let b = [2u8; 32];
         let c = [3u8; 32];
 
-        let hash1 = pedersen_hash(&a, &b);
-        let hash2 = pedersen_hash(&a, &c);
-        let hash3 = pedersen_hash(&b, &a);
+        let hash1 = merkle_hash(&a, &b);
+        let hash2 = merkle_hash(&a, &c);
+        let hash3 = merkle_hash(&b, &a);
 
         // Different inputs should produce different outputs
         assert_ne!(hash1, hash2);
@@ -475,7 +398,7 @@ mod tests {
 
         // Higher levels should be hashes of children
         for i in 1..=TREE_DEPTH {
-            let expected = pedersen_hash_inner(&roots[i - 1], &roots[i - 1]);
+            let expected = merkle_hash_inner(&roots[i - 1], &roots[i - 1]);
             assert_eq!(roots[i], expected);
         }
     }
