@@ -1,5 +1,5 @@
 [package]
-name = "solana-xdp"
+name = "agave-xdp"
 description = "Agave XDP implementation"
 version = { workspace = true }
 repository = { workspace = true }

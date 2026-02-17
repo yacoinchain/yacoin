@@ -1,5 +1,5 @@
 [package]
-name = "solana-shielded-transfer"
+name = "yacoin-shielded-transfer"
 description = "YaCoin Shielded Transfer Program - zk-SNARK based private transactions"
 version = { workspace = true }
 authors = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "solana-bls-cert-verify"
+name = "agave-bls-cert-verify"
 description = "The BLS cert verify logic shared between sigverify and block marker consumption"
 readme = "../README.md"
 version = { workspace = true }

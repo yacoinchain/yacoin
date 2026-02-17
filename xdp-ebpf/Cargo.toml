@@ -1,5 +1,5 @@
 [package]
-name = "solana-xdp-ebpf"
+name = "agave-xdp-ebpf"
 version = { workspace = true }
 authors = { workspace = true }
 description = { workspace = true }

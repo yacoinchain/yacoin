@@ -1,5 +1,5 @@
 [package]
-name = "solana-snapshots"
+name = "agave-snapshots"
 description = "Agave snapshot utils"
 documentation = "https://docs.rs/agave-snapshots"
 version = { workspace = true }
