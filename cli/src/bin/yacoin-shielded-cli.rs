@@ -190,6 +190,27 @@ fn main() {
         .subcommand(
             SubCommand::with_name("init-pool")
                 .about("Initialize the shielded pool (admin only)")
+                .arg(
+                    Arg::with_name("keypair")
+                        .short("k")
+                        .long("keypair")
+                        .value_name("FILE")
+                        .help("Keypair file to pay for account creation")
+                        .takes_value(true)
+                        .required(true),
+                )
+        )
+        .subcommand(
+            SubCommand::with_name("genesis-accounts")
+                .about("Generate genesis accounts YAML for shielded pool")
+                .arg(
+                    Arg::with_name("output")
+                        .short("o")
+                        .long("output")
+                        .value_name("FILE")
+                        .help("Output file (default: shielded-pool-genesis.yaml)")
+                        .takes_value(true),
+                )
         )
         .get_matches();
 
@@ -234,8 +255,13 @@ fn main() {
             let output = sub_m.value_of("output").map(PathBuf::from);
             cmd_export_viewing_key(&wallet, output.as_ref())
         }
-        ("init-pool", Some(_)) => {
-            cmd_init_pool(url)
+        ("init-pool", Some(sub_m)) => {
+            let keypair = PathBuf::from(sub_m.value_of("keypair").unwrap());
+            cmd_init_pool(&keypair, url)
+        }
+        ("genesis-accounts", Some(sub_m)) => {
+            let output = sub_m.value_of("output").map(PathBuf::from);
+            cmd_genesis_accounts(output)
         }
         _ => {
             eprintln!("No command specified. Use --help for usage.");
@@ -489,37 +515,181 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     Ok(())
 }
 
-fn cmd_init_pool(url: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use solana_keypair::read_keypair_file;
+    use solana_signer::Signer;
     use solana_rpc_client::rpc_client::RpcClient;
     use solana_pubkey::Pubkey;
-    use yacoin_shielded_transfer::id;
+    use solana_transaction::Transaction;
+    use solana_message::Message;
+    use solana_instruction::{Instruction, AccountMeta};
+    use yacoin_shielded_transfer::{id, ShieldedInstruction};
 
-    println!("Checking shielded pool status...");
+    println!("Initializing shielded pool...");
     println!("RPC: {}", url);
     println!();
+
+    let payer = read_keypair_file(keypair)
+        .map_err(|e| format!("Failed to read keypair: {}", e))?;
 
     let client = RpcClient::new(url.to_string());
     let program_id = id::ID;
 
-    // Derive pool address
-    let (pool_address, _) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
+    // Derive all PDA addresses
+    let (pool_address, _pool_bump) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
+    let (tree_address, _tree_bump) = Pubkey::find_program_address(&[b"commitment_tree"], &program_id);
+    let (nullifier_address, _nf_bump) = Pubkey::find_program_address(&[b"nullifier_set"], &program_id);
+    let (anchor_address, _anchor_bump) = Pubkey::find_program_address(&[b"recent_anchors"], &program_id);
 
-    // Check if pool exists
+    println!("Program ID: {}", program_id);
+    println!("Pool PDA: {}", pool_address);
+    println!("Tree PDA: {}", tree_address);
+    println!("Nullifier PDA: {}", nullifier_address);
+    println!("Anchor PDA: {}", anchor_address);
+    println!();
+
+    // Check if already initialized
     match client.get_account(&pool_address) {
-        Ok(_) => {
-            println!("Shielded pool already initialized at: {}", pool_address);
+        Ok(account) => {
+            if account.data.len() > 0 && account.data[0] != 0 {
+                println!("Shielded pool already initialized!");
+                println!("Pool balance: {} lamports", account.lamports);
+                return Ok(());
+            }
         }
         Err(_) => {
-            println!("Shielded pool not yet initialized.");
+            println!("Pool account does not exist. Need to add to genesis.");
             println!();
-            println!("Pool address: {}", pool_address);
-            println!("Program ID: {}", program_id);
-            println!();
-            println!("Note: The shielded pool is initialized as a builtin program.");
-            println!("      If running a custom genesis, ensure the shielded-transfer");
-            println!("      program is included in the builtin programs.");
+            println!("Run: yacoin-shielded-cli genesis-accounts -o shielded-pool-genesis.yaml");
+            println!("Then regenerate genesis with:");
+            println!("  yacoin-genesis ... --primordial-accounts-file shielded-pool-genesis.yaml");
+            return Err("Pool account must be created in genesis".into());
         }
     }
+
+    // Build InitializePool instruction
+    let authority = payer.pubkey().to_bytes();
+    let instruction_data = borsh::to_vec(&ShieldedInstruction::InitializePool { authority })?;
+
+    let init_instruction = Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(pool_address, false),
+            AccountMeta::new(tree_address, false),
+            AccountMeta::new(nullifier_address, false),
+            AccountMeta::new(anchor_address, false),
+        ],
+        data: instruction_data,
+    };
+
+    println!("Submitting InitializePool transaction...");
+
+    let blockhash = client.get_latest_blockhash()?;
+    let message = Message::new(&[init_instruction], Some(&payer.pubkey()));
+    let mut tx = Transaction::new_unsigned(message);
+    tx.sign(&[&payer], blockhash);
+
+    match client.send_and_confirm_transaction(&tx) {
+        Ok(signature) => {
+            println!();
+            println!("Success! Transaction: {}", signature);
+            println!("Shielded pool initialized.");
+        }
+        Err(e) => {
+            return Err(format!("Transaction failed: {}", e).into());
+        }
+    }
+
+    Ok(())
+}
+
+fn cmd_genesis_accounts(output: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
+    use solana_pubkey::Pubkey;
+    use yacoin_shielded_transfer::id;
+    use base64::{Engine, prelude::BASE64_STANDARD};
+
+    let program_id = id::ID;
+
+    // Derive all PDA addresses
+    let (pool_address, _) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
+    let (tree_address, _) = Pubkey::find_program_address(&[b"commitment_tree"], &program_id);
+    let (nullifier_address, _) = Pubkey::find_program_address(&[b"nullifier_set"], &program_id);
+    let (anchor_address, _) = Pubkey::find_program_address(&[b"recent_anchors"], &program_id);
+
+    // Account sizes (must be rent-exempt)
+    let pool_size = 128;      // ShieldedPoolState with padding
+    let tree_size = 2048;     // CommitmentTreeAccount
+    let nullifier_size = 256; // Initial NullifierSetAccount
+    let anchor_size = 4096;   // RecentAnchorsAccount (100 * 32 + padding)
+
+    // Rent-exempt minimums (approximate, using 6960 lamports per byte-year)
+    // At 2 years rent-exempt: ~0.00348 SOL per byte, minimum 890880 lamports
+    let rent_per_byte = 6960u64;
+    let min_rent = 890880u64;
+
+    let pool_rent = std::cmp::max(min_rent, pool_size as u64 * rent_per_byte * 2);
+    let tree_rent = std::cmp::max(min_rent, tree_size as u64 * rent_per_byte * 2);
+    let nullifier_rent = std::cmp::max(min_rent, nullifier_size as u64 * rent_per_byte * 2);
+    let anchor_rent = std::cmp::max(min_rent, anchor_size as u64 * rent_per_byte * 2);
+
+    // Create empty data (will be initialized by InitializePool)
+    let pool_data = vec![0u8; pool_size];
+    let tree_data = vec![0u8; tree_size];
+    let nullifier_data = vec![0u8; nullifier_size];
+    let anchor_data = vec![0u8; anchor_size];
+
+    let yaml = format!(r#"# YaCoin Shielded Pool Genesis Accounts
+# Generated for program ID: {}
+# Add this file to genesis with: --primordial-accounts-file <this-file>
+
+{}:
+  owner: "{}"
+  balance: {}
+  data: "{}"
+  executable: false
+
+{}:
+  owner: "{}"
+  balance: {}
+  data: "{}"
+  executable: false
+
+{}:
+  owner: "{}"
+  balance: {}
+  data: "{}"
+  executable: false
+
+{}:
+  owner: "{}"
+  balance: {}
+  data: "{}"
+  executable: false
+"#,
+        program_id,
+        pool_address, program_id, pool_rent, BASE64_STANDARD.encode(&pool_data),
+        tree_address, program_id, tree_rent, BASE64_STANDARD.encode(&tree_data),
+        nullifier_address, program_id, nullifier_rent, BASE64_STANDARD.encode(&nullifier_data),
+        anchor_address, program_id, anchor_rent, BASE64_STANDARD.encode(&anchor_data),
+    );
+
+    let output_path = output.unwrap_or_else(|| PathBuf::from("shielded-pool-genesis.yaml"));
+    std::fs::write(&output_path, &yaml)?;
+
+    println!("Generated genesis accounts file: {}", output_path.display());
+    println!();
+    println!("Program ID: {}", program_id);
+    println!("Pool PDA: {} ({} lamports)", pool_address, pool_rent);
+    println!("Tree PDA: {} ({} lamports)", tree_address, tree_rent);
+    println!("Nullifier PDA: {} ({} lamports)", nullifier_address, nullifier_rent);
+    println!("Anchor PDA: {} ({} lamports)", anchor_address, anchor_rent);
+    println!();
+    println!("Total lamports needed: {}", pool_rent + tree_rent + nullifier_rent + anchor_rent);
+    println!();
+    println!("To use:");
+    println!("  1. Regenerate genesis with: --primordial-accounts-file {}", output_path.display());
+    println!("  2. Start validator with new ledger");
+    println!("  3. Run: yacoin-shielded-cli init-pool --keypair <authority-keypair>");
 
     Ok(())
 }

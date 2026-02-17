@@ -118,6 +118,7 @@ dirs = "5.0"
 blake2b_simd = "1.0"
 rand = { workspace = true }
 borsh = { workspace = true }
+base64 = { workspace = true }
 
 # Shielded transaction support
 yacoin-shielded-transfer = { path = "../programs/shielded-transfer", features = ["sapling"] }
