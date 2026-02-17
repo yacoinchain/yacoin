@@ -343,6 +343,7 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     use solana_message::Message;
     use solana_instruction::Instruction;
     use solana_compute_budget_interface::ComputeBudgetInstruction;
+    use solana_system_interface::instruction as system_instruction;
     use yacoin_shielded_transfer::{OutputDescription, ShieldedInstruction, id, ENC_CIPHERTEXT_SIZE, OUT_CIPHERTEXT_SIZE};
     use yacoin_shielded_wallet::prover::{ShieldedProver, get_params_dir};
     use yacoin_shielded_wallet::keys::SpendingKey;
@@ -446,6 +447,9 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     // Request more compute units for zk-SNARK verification (1.4M CU)
     let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_400_000);
 
+    // System Program transfer: payer -> pool (the shielded program can't debit payer directly)
+    let transfer_ix = system_instruction::transfer(&payer.pubkey(), &pool_address, amount);
+
     println!("Submitting transaction...");
 
     // Connect to RPC
@@ -454,8 +458,8 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     // Get recent blockhash
     let blockhash = client.get_latest_blockhash()?;
 
-    // Build transaction with compute budget first
-    let message = Message::new(&[compute_budget_ix, shield_instruction], Some(&payer.pubkey()));
+    // Build transaction: compute budget, transfer, then shield
+    let message = Message::new(&[compute_budget_ix, transfer_ix, shield_instruction], Some(&payer.pubkey()));
     let mut tx = Transaction::new_unsigned(message);
     tx.sign(&[&payer], blockhash);
 
