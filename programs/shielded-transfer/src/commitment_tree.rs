@@ -398,7 +398,7 @@ mod tests {
 
         // Higher levels should be hashes of children
         for i in 1..=TREE_DEPTH {
-            let expected = merkle_hash_inner(&roots[i - 1], &roots[i - 1]);
+            let expected = merkle_hash(&roots[i - 1], &roots[i - 1]);
             assert_eq!(roots[i], expected);
         }
     }

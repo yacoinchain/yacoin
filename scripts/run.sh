@@ -7,6 +7,12 @@
 #
 set -e
 
+# Kill any existing yacoin processes first
+echo "Cleaning up any existing processes..."
+pkill -9 -f "yacoin-validator" 2>/dev/null || true
+pkill -9 -f "yacoin-faucet" 2>/dev/null || true
+sleep 1
+
 # Prefer possible `cargo build` binaries over PATH binaries
 script_dir="$(readlink -f "$(dirname "$0")")"
 if [[ "$script_dir" =~ /scripts$ ]]; then
