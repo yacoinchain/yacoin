@@ -9,7 +9,7 @@ git pull
 
 # Build only what we need
 echo "Building validator and CLI..."
-cargo build --release -p solana-validator -p solana-cli -p yacoin-shielded-cli
+cargo build --release -p solana-validator -p solana-cli
 
 echo "Build complete!"
 echo ""
