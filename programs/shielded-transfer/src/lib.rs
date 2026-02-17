@@ -51,8 +51,9 @@ pub const NOTE_COMMITMENT_SIZE: usize = 32;
 /// Size of a nullifier
 pub const NULLIFIER_SIZE: usize = 32;
 
-/// Size of encrypted note ciphertext
-pub const ENC_CIPHERTEXT_SIZE: usize = 580;
+/// Size of encrypted note ciphertext (compact: no memo field for MVP)
+/// Full Sapling uses 580 bytes (includes 512-byte memo), we use 68 bytes
+pub const ENC_CIPHERTEXT_SIZE: usize = 68;
 
 /// Size of outgoing ciphertext
 pub const OUT_CIPHERTEXT_SIZE: usize = 80;

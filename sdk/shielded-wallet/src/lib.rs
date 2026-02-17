@@ -26,8 +26,8 @@ pub use error::WalletError;
 /// Groth16 proof size (192 bytes)
 pub const GROTH_PROOF_SIZE: usize = 192;
 
-/// Encrypted note ciphertext size
-pub const ENC_CIPHERTEXT_SIZE: usize = 580;
+/// Encrypted note ciphertext size (compact: no memo for MVP)
+pub const ENC_CIPHERTEXT_SIZE: usize = 68;
 
 /// Outgoing ciphertext size
 pub const OUT_CIPHERTEXT_SIZE: usize = 80;
