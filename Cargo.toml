@@ -76,8 +76,6 @@ members = [
     "programs/zk-token-proof",
     "programs/shielded-transfer",
     "sdk/shielded-wallet",
-    "yacoin-cli",
-    # "yacoin-test-validator",  # Disabled - uses startup script instead
     "pubsub-client",
     "quic-client",
     "random",
