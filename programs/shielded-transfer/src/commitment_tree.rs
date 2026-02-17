@@ -72,24 +72,26 @@ mod generators {
 /// These are the roots of subtrees with no commitments
 mod empty_roots {
     use super::*;
-    use std::sync::OnceLock;
 
-    static EMPTY_ROOTS: OnceLock<[[u8; 32]; 33]> = OnceLock::new();
+    /// Compute empty roots on demand (avoids OnceLock issues in native runtime)
+    pub fn get() -> [[u8; 32]; 33] {
+        let mut roots = [[0u8; 32]; 33];
 
-    pub fn get() -> &'static [[u8; 32]; 33] {
-        EMPTY_ROOTS.get_or_init(|| {
-            let mut roots = [[0u8; 32]; 33];
+        // Level 0: empty leaf - use non-zero value for debugging
+        // This ensures we can distinguish "properly initialized" from "uninitialized"
+        roots[0] = [0x01; 32];
 
-            // Level 0: empty leaf
-            roots[0] = [0u8; 32];
+        // Each level is hash of two children from level below
+        for i in 1..=TREE_DEPTH {
+            roots[i] = pedersen_hash_inner(&roots[i - 1], &roots[i - 1]);
+        }
 
-            // Each level is hash of two children from level below
-            for i in 1..=TREE_DEPTH {
-                roots[i] = pedersen_hash_inner(&roots[i - 1], &roots[i - 1]);
-            }
+        roots
+    }
 
-            roots
-        })
+    /// Get just the root of an empty tree (depth 32)
+    pub fn empty_root() -> [u8; 32] {
+        get()[TREE_DEPTH]
     }
 }
 
@@ -112,7 +114,7 @@ impl IncrementalMerkleTree {
     /// Create a new empty tree
     pub fn new() -> Self {
         Self {
-            root: empty_roots::get()[TREE_DEPTH],
+            root: empty_roots::empty_root(),
             size: 0,
             frontier: Vec::with_capacity(TREE_DEPTH),
         }
