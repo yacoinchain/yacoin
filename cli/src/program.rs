@@ -678,7 +678,7 @@ impl ProgramSubCommands for App<'_, '_> {
         .subcommand(
             SubCommand::with_name("deploy")
                 .about(
-                    "Deploy has been removed. Use `solana program deploy` instead to deploy \
+                    "Deploy has been removed. Use `yacoin program deploy` instead to deploy \
                      upgradeable programs",
                 )
                 .setting(AppSettings::Hidden),
@@ -3419,7 +3419,7 @@ fn report_ephemeral_mnemonic(words: usize, mnemonic: bip39::Mnemonic, ephemeral_
     eprintln!("`solana-keygen recover` and the following {words}-word seed phrase:");
     eprintln!("{divider}\n{phrase}\n{divider}");
     eprintln!("To resume a deploy, pass the recovered keypair as the");
-    eprintln!("[BUFFER_SIGNER] to `solana program deploy` or `solana program write-buffer'.");
+    eprintln!("[BUFFER_SIGNER] to `yacoin program deploy` or `yacoin program write-buffer'.");
     eprintln!("Or to recover the account's lamports, use:");
     eprintln!("{divider}\nsolana program close {ephemeral_pubkey}\n{divider}");
 }

@@ -371,7 +371,7 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
                 .takes_value(true)
                 .validator(is_url_or_moniker)
                 .help(
-                    "URL for Solana's JSON RPC or moniker (or their first letter): [mainnet-beta, \
+                    "URL for YaCoin's JSON RPC or moniker (or their first letter): [mainnet-beta, \
                      testnet, devnet, localhost]",
                 ),
         )
@@ -520,7 +520,7 @@ pub fn test_app<'a>(version: &'a str, default_args: &'a DefaultTestArgs) -> App<
                 .allow_hyphen_values(true)
                 .multiple(true)
                 .help(
-                    "Load an account from the provided JSON file (see `solana account --help` on \
+                    "Load an account from the provided JSON file (see `yacoin account --help` on \
                      how to dump an account to file). Files are searched for relatively to CWD \
                      and tests/fixtures. If ADDRESS is omitted via the `-` placeholder, the one \
                      in the file will be used. If the ledger already exists then this parameter \

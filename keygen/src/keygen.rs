@@ -115,7 +115,7 @@ fn get_keypair_from_matches(
         &config_source
     } else {
         let mut path = dirs_next::home_dir().expect("home directory");
-        path.extend([".config", "solana", "id.json"]);
+        path.extend([".config", "yacoin", "id.json"]);
         config_source = SignerSource::parse(path.to_str().unwrap())?;
         &config_source
     };
@@ -555,7 +555,7 @@ fn do_main(matches: &ArgMatches) -> Result<(), Box<dyn error::Error>> {
             } else if matches.try_contains_id(NO_OUTFILE_ARG.name)? {
                 None
             } else {
-                path.extend([".config", "solana", "id.json"]);
+                path.extend([".config", "yacoin", "id.json"]);
                 Some(path.to_str().unwrap())
             };
 
@@ -611,7 +611,7 @@ fn do_main(matches: &ArgMatches) -> Result<(), Box<dyn error::Error>> {
             let outfile = if matches.try_contains_id("outfile")? {
                 matches.get_one::<String>("outfile").unwrap()
             } else {
-                path.extend([".config", "solana", "id.json"]);
+                path.extend([".config", "yacoin", "id.json"]);
                 path.to_str().unwrap()
             };
 
