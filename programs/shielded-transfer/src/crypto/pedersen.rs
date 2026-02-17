@@ -11,7 +11,7 @@ use group::cofactor::CofactorGroup;
 use blake2s_simd::Params as Blake2sParams;
 
 /// Domain separator for note commitments
-const NOTE_COMMITMENT_DOMAIN: &[u8; 8] = b"YaCoin_NC"; // Use Zcash domain for compatibility
+const NOTE_COMMITMENT_DOMAIN: &[u8; 8] = b"YaCoinNC"; // 8 bytes for domain separator
 
 /// The Sapling value commitment generator V (from Zcash spec)
 /// This is a nothing-up-my-sleeve point derived from hashing
