@@ -269,81 +269,122 @@ impl RecentAnchorsAccount {
     }
 }
 
-/// Load pool state from account data
+/// Length prefix size (4 bytes for u32)
+const LENGTH_PREFIX_SIZE: usize = 4;
+
+/// Load pool state from account data (length-prefixed)
 pub fn load_pool_state(data: &[u8]) -> Result<ShieldedPoolState, ShieldedTransferError> {
-    ShieldedPoolState::try_from_slice(data)
+    if data.len() < LENGTH_PREFIX_SIZE {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    let len = u32::from_le_bytes(data[..4].try_into().unwrap()) as usize;
+    if len == 0 || data.len() < LENGTH_PREFIX_SIZE + len {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    ShieldedPoolState::try_from_slice(&data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + len])
         .map_err(|_| ShieldedTransferError::InvalidAccountData)
 }
 
-/// Save pool state to account data
+/// Save pool state to account data (length-prefixed)
 pub fn save_pool_state(state: &ShieldedPoolState, data: &mut [u8]) -> Result<(), ShieldedTransferError> {
     let serialized = borsh::to_vec(state)
         .map_err(|_| ShieldedTransferError::SerializationError)?;
 
-    if serialized.len() > data.len() {
+    let total_len = LENGTH_PREFIX_SIZE + serialized.len();
+    if total_len > data.len() {
         return Err(ShieldedTransferError::AccountTooSmall);
     }
 
-    data[..serialized.len()].copy_from_slice(&serialized);
+    // Write length prefix
+    data[..4].copy_from_slice(&(serialized.len() as u32).to_le_bytes());
+    // Write data
+    data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + serialized.len()].copy_from_slice(&serialized);
     Ok(())
 }
 
-/// Load commitment tree from account data
+/// Load commitment tree from account data (length-prefixed)
 pub fn load_commitment_tree(data: &[u8]) -> Result<IncrementalMerkleTree, ShieldedTransferError> {
-    let account = CommitmentTreeAccount::try_from_slice(data)
+    if data.len() < LENGTH_PREFIX_SIZE {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    let len = u32::from_le_bytes(data[..4].try_into().unwrap()) as usize;
+    if len == 0 || data.len() < LENGTH_PREFIX_SIZE + len {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    let account = CommitmentTreeAccount::try_from_slice(&data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + len])
         .map_err(|_| ShieldedTransferError::InvalidAccountData)?;
     Ok(account.to_tree())
 }
 
-/// Save commitment tree to account data
+/// Save commitment tree to account data (length-prefixed)
 pub fn save_commitment_tree(tree: &IncrementalMerkleTree, data: &mut [u8]) -> Result<(), ShieldedTransferError> {
     let account = CommitmentTreeAccount::from_tree(tree);
     let serialized = borsh::to_vec(&account)
         .map_err(|_| ShieldedTransferError::SerializationError)?;
 
-    if serialized.len() > data.len() {
+    let total_len = LENGTH_PREFIX_SIZE + serialized.len();
+    if total_len > data.len() {
         return Err(ShieldedTransferError::AccountTooSmall);
     }
 
-    data[..serialized.len()].copy_from_slice(&serialized);
+    data[..4].copy_from_slice(&(serialized.len() as u32).to_le_bytes());
+    data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + serialized.len()].copy_from_slice(&serialized);
     Ok(())
 }
 
-/// Load nullifier set from account data
+/// Load nullifier set from account data (length-prefixed)
 pub fn load_nullifier_set(data: &[u8]) -> Result<NullifierSetAccount, ShieldedTransferError> {
-    NullifierSetAccount::try_from_slice(data)
+    if data.len() < LENGTH_PREFIX_SIZE {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    let len = u32::from_le_bytes(data[..4].try_into().unwrap()) as usize;
+    if len == 0 || data.len() < LENGTH_PREFIX_SIZE + len {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    NullifierSetAccount::try_from_slice(&data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + len])
         .map_err(|_| ShieldedTransferError::InvalidAccountData)
 }
 
-/// Save nullifier set to account data
+/// Save nullifier set to account data (length-prefixed)
 pub fn save_nullifier_set(set: &NullifierSetAccount, data: &mut [u8]) -> Result<(), ShieldedTransferError> {
     let serialized = borsh::to_vec(set)
         .map_err(|_| ShieldedTransferError::SerializationError)?;
 
-    if serialized.len() > data.len() {
+    let total_len = LENGTH_PREFIX_SIZE + serialized.len();
+    if total_len > data.len() {
         return Err(ShieldedTransferError::AccountTooSmall);
     }
 
-    data[..serialized.len()].copy_from_slice(&serialized);
+    data[..4].copy_from_slice(&(serialized.len() as u32).to_le_bytes());
+    data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + serialized.len()].copy_from_slice(&serialized);
     Ok(())
 }
 
-/// Load recent anchors from account data
+/// Load recent anchors from account data (length-prefixed)
 pub fn load_recent_anchors(data: &[u8]) -> Result<RecentAnchorsAccount, ShieldedTransferError> {
-    RecentAnchorsAccount::try_from_slice(data)
+    if data.len() < LENGTH_PREFIX_SIZE {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    let len = u32::from_le_bytes(data[..4].try_into().unwrap()) as usize;
+    if len == 0 || data.len() < LENGTH_PREFIX_SIZE + len {
+        return Err(ShieldedTransferError::InvalidAccountData);
+    }
+    RecentAnchorsAccount::try_from_slice(&data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + len])
         .map_err(|_| ShieldedTransferError::InvalidAccountData)
 }
 
-/// Save recent anchors to account data
+/// Save recent anchors to account data (length-prefixed)
 pub fn save_recent_anchors(anchors: &RecentAnchorsAccount, data: &mut [u8]) -> Result<(), ShieldedTransferError> {
     let serialized = borsh::to_vec(anchors)
         .map_err(|_| ShieldedTransferError::SerializationError)?;
 
-    if serialized.len() > data.len() {
+    let total_len = LENGTH_PREFIX_SIZE + serialized.len();
+    if total_len > data.len() {
         return Err(ShieldedTransferError::AccountTooSmall);
     }
 
-    data[..serialized.len()].copy_from_slice(&serialized);
+    data[..4].copy_from_slice(&(serialized.len() as u32).to_le_bytes());
+    data[LENGTH_PREFIX_SIZE..LENGTH_PREFIX_SIZE + serialized.len()].copy_from_slice(&serialized);
     Ok(())
 }
 
