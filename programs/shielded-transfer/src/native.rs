@@ -20,7 +20,7 @@ use crate::{
     accounts::{
         NullifierSetAccount, RecentAnchorsAccount,
         load_pool_state, save_pool_state,
-        load_commitment_tree,
+        load_commitment_tree, save_commitment_tree,
         load_nullifier_set, save_nullifier_set,
         load_recent_anchors, save_recent_anchors,
         MAX_RECENT_ANCHORS,
