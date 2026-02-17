@@ -493,11 +493,11 @@ pub enum CliError {
     ClientError(#[from] ClientError),
     #[error("Command not recognized: {0}")]
     CommandNotRecognized(String),
-    #[error("Account {1} has insufficient funds for fee ({0} SOL)")]
+    #[error("Account {1} has insufficient funds for fee ({0} YAC)")]
     InsufficientFundsForFee(String, Pubkey),
-    #[error("Account {1} has insufficient funds for spend ({0} SOL)")]
+    #[error("Account {1} has insufficient funds for spend ({0} YAC)")]
     InsufficientFundsForSpend(String, Pubkey),
-    #[error("Account {2} has insufficient funds for spend ({0} SOL) + fee ({1} SOL)")]
+    #[error("Account {2} has insufficient funds for spend ({0} YAC) + fee ({1} YAC)")]
     InsufficientFundsForSpendAndFee(String, String, Pubkey),
     #[error(transparent)]
     InvalidNonce(solana_rpc_client_nonce_utils::Error),
@@ -2270,7 +2270,7 @@ mod tests {
             pubkey: None,
             use_lamports_unit: false,
         };
-        assert_eq!(process_command(&config).await.unwrap(), "0.00000005 SOL");
+        assert_eq!(process_command(&config).await.unwrap(), "0.00000005 YAC");
 
         let good_signature = bs58::decode(SIGNATURE)
             .into_vec()
@@ -2695,7 +2695,7 @@ mod tests {
         write_keypair_file(&default_keypair, &default_keypair_file).unwrap();
         let default_signer = DefaultSigner::new("", &default_keypair_file);
 
-        // Test Transfer Subcommand, SOL
+        // Test Transfer Subcommand, YAC
         let from_keypair = keypair_from_seed(&[0u8; 32]).unwrap();
         let from_pubkey = from_keypair.pubkey();
         let from_string = from_pubkey.to_string();

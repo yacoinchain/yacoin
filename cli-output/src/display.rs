@@ -50,16 +50,16 @@ pub fn build_balance_message_with_config(
     let value = if config.use_lamports_unit {
         lamports.to_string()
     } else {
-        const LAMPORTS_PER_SOL_F64: f64 = 1_000_000_000.;
-        let sol = lamports as f64 / LAMPORTS_PER_SOL_F64;
-        let sol_str = format!("{sol:.9}");
+        const LAMPORTS_PER_YAC_F64: f64 = 1_000_000_000.;
+        let yac = lamports as f64 / LAMPORTS_PER_YAC_F64;
+        let yac_str = format!("{yac:.9}");
         if config.trim_trailing_zeros {
-            sol_str
+            yac_str
                 .trim_end_matches('0')
                 .trim_end_matches('.')
                 .to_string()
         } else {
-            sol_str
+            yac_str
         }
     };
     let unit = if config.show_unit {
@@ -67,7 +67,7 @@ pub fn build_balance_message_with_config(
             let ess = if lamports == 1 { "" } else { "s" };
             format!(" lamport{ess}")
         } else {
-            " SOL".to_string()
+            " YAC".to_string()
         }
     } else {
         "".to_string()
