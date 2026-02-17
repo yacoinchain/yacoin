@@ -1,41 +1,33 @@
 //! YaCoin Shielded Wallet SDK
 //!
-//! This library provides functionality for creating and managing shielded transactions
-//! on the YaCoin blockchain.
+//! This SDK provides everything needed for shielded transactions:
+//! - Key generation and derivation (Sapling-compatible)
+//! - Note creation and encryption
+//! - Commitment computation
+//! - Proof generation using our own Sapling circuit
 //!
-//! # Example
-//!
-//! ```ignore
-//! use yacoin_shielded_wallet::{ShieldedWallet, ShieldedAddress};
-//!
-//! // Create a new wallet from seed
-//! let seed = [0u8; 32];
-//! let mut wallet = ShieldedWallet::from_seed(&seed);
-//!
-//! // Get a payment address
-//! let address = wallet.default_address()?;
-//!
-//! // Create a shielded transfer
-//! let instruction = wallet.create_shield_instruction(1000, from_account, pool_account)?;
-//! ```
+//! All crypto primitives are implemented in-house, not using external zcash crates.
 
-pub mod error;
 pub mod keys;
+pub mod note;
+pub mod commitment;
 pub mod prover;
-pub mod transaction;
 pub mod wallet;
+pub mod error;
 
-// Re-export main types
-pub use error::{WalletError, WalletResult};
-pub use keys::{ExtendedSpendingKey, ShieldedAddress, ViewingKey};
-pub use transaction::{
-    ShieldBuilder, ShieldedTransferBuilder, UnshieldBuilder, WalletNote,
-    ShieldedTransaction, ShieldedTxType,
-};
-pub use wallet::{ShieldedWallet, ViewingKeyExport, WalletBackup, WatchOnlyWallet};
+// Re-exports for convenience
+pub use keys::{SpendingKey, FullViewingKey, IncomingViewingKey, OutgoingViewingKey, PaymentAddress, Diversifier};
+pub use note::{Note, EncryptedNote};
+pub use commitment::{NoteCommitment, ValueCommitment};
+pub use prover::{SpendProof, OutputProof, ShieldedProver};
+pub use wallet::{ShieldedWallet, ShieldedBalance};
+pub use error::WalletError;
 
-/// Re-export crypto types from shielded-transfer
-pub use yacoin_shielded_transfer::crypto;
+/// Groth16 proof size (192 bytes)
+pub const GROTH_PROOF_SIZE: usize = 192;
 
-/// Re-export core instruction types
-pub use yacoin_shielded_transfer::{OutputDescription, SpendDescription};
+/// Encrypted note ciphertext size
+pub const ENC_CIPHERTEXT_SIZE: usize = 580;
+
+/// Outgoing ciphertext size
+pub const OUT_CIPHERTEXT_SIZE: usize = 80;

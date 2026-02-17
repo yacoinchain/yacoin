@@ -1,115 +1,63 @@
-//! Sapling proof generation using real Zcash circuits
+//! Real Groth16 proof generation using Sapling circuits
 //!
-//! This module provides actual zk-SNARK proof generation for shielded transactions
-//! using the same cryptographic circuits as Zcash Sapling.
+//! This module generates actual zk-SNARK proofs using:
+//! - The sapling-crypto crate's circuit implementations
+//! - Sapling parameters (spend/output proving keys)
+//! - Bellman's Groth16 proving system
+//!
+//! These are real, verifiable proofs - not placeholders.
 
-use std::path::Path;
-use std::sync::OnceLock;
+use jubjub::Fr;
+use serde::{Serialize, Deserialize};
+use serde_with::{serde_as, Bytes};
+use std::path::PathBuf;
+
+use crate::keys::SpendingKey;
+use crate::note::Note;
+use crate::commitment::{NoteCommitment, ValueCommitment};
+use crate::error::WalletError;
+use crate::GROTH_PROOF_SIZE;
+
+#[cfg(feature = "prover")]
 use rand_core::OsRng;
 
-use crate::error::{WalletError, WalletResult};
-
-// Use zcash_proofs for Sapling proof generation
-use zcash_proofs::prover::LocalTxProver;
-
-// Use sapling-crypto directly for types
+// Import the real Sapling circuit types
+#[cfg(feature = "prover")]
 use sapling_crypto::{
-    value::{NoteValue, ValueCommitTrapdoor, ValueCommitment},
-    Diversifier,
+    circuit::{SpendParameters, OutputParameters},
+    Diversifier as SaplingDiversifier,
+    PaymentAddress as SaplingPaymentAddress,
+    Note as SaplingNote,
+    Rseed,
+    Node,
+    keys::ExpandedSpendingKey,
+    value::{NoteValue, ValueCommitTrapdoor},
+    prover::{SpendProver, OutputProver},
 };
 
-use group::GroupEncoding;
-use ff::Field;
-
-/// Groth16 proof size (192 bytes)
-pub const GROTH_PROOF_SIZE: usize = 192;
-
-/// Cached prover instance
-static PROVER: OnceLock<Option<LocalTxProver>> = OnceLock::new();
-
-/// Get the prover, loading parameters if needed
-pub fn get_prover() -> WalletResult<&'static LocalTxProver> {
-    let prover = PROVER.get_or_init(|| load_prover());
-
-    prover.as_ref().ok_or_else(|| {
-        WalletError::ProofGenerationFailed(
-            "Sapling parameters not found. Download with:\n  \
-             mkdir -p ~/.yacoin/params && cd ~/.yacoin/params\n  \
-             curl -LO https://download.z.cash/downloads/sapling-spend.params\n  \
-             curl -LO https://download.z.cash/downloads/sapling-output.params".to_string()
-        )
-    })
-}
-
-/// Load the prover from standard parameter locations
-fn load_prover() -> Option<LocalTxProver> {
-    // Try YaCoin params directory first
-    if let Some(home) = dirs::home_dir() {
-        let yacoin_params = home.join(".yacoin").join("params");
-        if let Some(prover) = try_load_from_dir(&yacoin_params) {
-            eprintln!("Loaded Sapling params from {:?}", yacoin_params);
-            return Some(prover);
-        }
-
-        // Try Zcash params directory as fallback
-        let zcash_params = home.join(".zcash-params");
-        if let Some(prover) = try_load_from_dir(&zcash_params) {
-            eprintln!("Loaded Sapling params from {:?}", zcash_params);
-            return Some(prover);
-        }
-    }
-
-    // Try current directory
-    if let Some(prover) = try_load_from_dir(Path::new("params")) {
-        return Some(prover);
-    }
-
-    // Try environment variable
-    if let Ok(param_dir) = std::env::var("YACOIN_PARAMS") {
-        if let Some(prover) = try_load_from_dir(Path::new(&param_dir)) {
-            return Some(prover);
-        }
-    }
-
-    None
-}
-
-/// Try to load prover from a directory
-fn try_load_from_dir(dir: &Path) -> Option<LocalTxProver> {
-    let spend_path = dir.join("sapling-spend.params");
-    let output_path = dir.join("sapling-output.params");
-
-    if spend_path.exists() && output_path.exists() {
-        match LocalTxProver::new(&spend_path, &output_path) {
-            prover => Some(prover),
-        }
-    } else {
-        None
-    }
-}
-
-/// Check if prover is available
-pub fn prover_available() -> bool {
-    PROVER.get_or_init(|| load_prover()).is_some()
-}
-
-/// Result of generating a spend proof
-#[derive(Clone)]
-pub struct SpendProofResult {
-    /// Groth16 proof (192 bytes)
+/// Spend proof - proves ownership of a note without revealing it
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SpendProof {
+    /// The Groth16 proof (192 bytes)
+    #[serde_as(as = "Bytes")]
     pub proof: [u8; GROTH_PROOF_SIZE],
     /// Value commitment
     pub cv: [u8; 32],
-    /// Nullifier
+    /// Merkle root anchor
+    pub anchor: [u8; 32],
+    /// Nullifier (unique identifier for this spend)
     pub nullifier: [u8; 32],
     /// Randomized verification key
     pub rk: [u8; 32],
 }
 
-/// Result of generating an output proof
-#[derive(Clone)]
-pub struct OutputProofResult {
-    /// Groth16 proof (192 bytes)
+/// Output proof - proves valid creation of a new note
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct OutputProof {
+    /// The Groth16 proof (192 bytes)
+    #[serde_as(as = "Bytes")]
     pub proof: [u8; GROTH_PROOF_SIZE],
     /// Value commitment
     pub cv: [u8; 32],
@@ -119,356 +67,414 @@ pub struct OutputProofResult {
     pub epk: [u8; 32],
 }
 
-/// Generate a Sapling spend proof
-pub fn generate_spend_proof(
-    value: u64,
-    diversifier: [u8; 11],
-    pk_d: [u8; 32],
-    rcm: [u8; 32],
-    anchor: [u8; 32],
-    merkle_path: Vec<([u8; 32], bool)>,
-    proof_generation_key: &[u8; 64],
-) -> WalletResult<SpendProofResult> {
-    let prover = get_prover()?;
-
-    // Parse inputs
-    let _diversifier = Diversifier(diversifier);
-    let _note_value = NoteValue::from_raw(value);
-
-    // Create value commitment trapdoor
-    let rcv = ValueCommitTrapdoor::random(&mut OsRng);
-
-    // Generate alpha for rerandomization
-    let alpha = jubjub::Fr::random(&mut OsRng);
-
-    // Parse proof generation key
-    let ak_bytes: [u8; 32] = proof_generation_key[0..32].try_into().unwrap();
-    let nsk_bytes: [u8; 32] = proof_generation_key[32..64].try_into().unwrap();
-
-    // Generate proof
-    let (proof_bytes, cv_bytes, rk_bytes) = generate_spend_proof_internal(
-        prover,
-        value,
-        &diversifier,
-        &pk_d,
-        &rcm,
-        &anchor,
-        &merkle_path,
-        &ak_bytes,
-        &nsk_bytes,
-        &alpha,
-        &rcv,
-    )?;
-
-    // Compute nullifier
-    let nullifier = compute_nullifier(&nsk_bytes, &rcm, merkle_path.len() as u64);
-
-    Ok(SpendProofResult {
-        proof: proof_bytes,
-        cv: cv_bytes,
-        nullifier,
-        rk: rk_bytes,
-    })
+/// Merkle witness for proving note inclusion
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct MerkleWitness {
+    /// Path of sibling hashes (32 levels)
+    #[serde_as(as = "[_; 32]")]
+    pub path: [[u8; 32]; 32],
+    /// Position bits (0 = left, 1 = right)
+    pub position: u64,
 }
 
-/// Generate a Sapling output proof
-pub fn generate_output_proof(
-    value: u64,
-    diversifier: [u8; 11],
-    pk_d: [u8; 32],
-    rcm: [u8; 32],
-) -> WalletResult<OutputProofResult> {
-    let prover = get_prover()?;
+impl MerkleWitness {
+    /// Compute the root from a leaf commitment
+    pub fn root(&self, leaf: &NoteCommitment) -> [u8; 32] {
+        use crate::commitment::merkle_hash;
 
-    // Create value commitment trapdoor
-    let rcv = ValueCommitTrapdoor::random(&mut OsRng);
+        let mut current = leaf.0;
 
-    // Generate ephemeral secret key
-    let esk = jubjub::Fr::random(&mut OsRng);
+        for depth in 0..32 {
+            let is_right = (self.position >> depth) & 1 == 1;
 
-    // Generate the output proof
-    let (proof_bytes, cv_bytes, cmu_bytes, epk_bytes) = generate_output_proof_internal(
-        prover,
-        value,
-        &diversifier,
-        &pk_d,
-        &rcm,
-        &rcv,
-        &esk,
-    )?;
+            current = if is_right {
+                merkle_hash(depth, &self.path[depth], &current)
+            } else {
+                merkle_hash(depth, &current, &self.path[depth])
+            };
+        }
 
-    Ok(OutputProofResult {
-        proof: proof_bytes,
-        cv: cv_bytes,
-        cmu: cmu_bytes,
-        epk: epk_bytes,
-    })
+        current
+    }
+
+    /// Convert to Sapling MerklePath format
+    #[cfg(feature = "prover")]
+    pub fn to_sapling_path(&self) -> sapling_crypto::MerklePath {
+        use incrementalmerkletree::Position;
+
+        // Convert our witness format to Sapling's MerklePath
+        // MerklePath::from_parts expects Vec<Node> where Node wraps bls12_381::Scalar
+        let auth_path: Vec<Node> = self.path.iter().filter_map(|h| {
+            Node::from_bytes(*h).into()
+        }).collect();
+
+        let position = Position::from(self.position);
+
+        sapling_crypto::MerklePath::from_parts(auth_path, position).expect("valid merkle path")
+    }
 }
 
-/// Internal spend proof generation
-fn generate_spend_proof_internal(
-    _prover: &LocalTxProver,
-    value: u64,
-    diversifier: &[u8; 11],
-    pk_d: &[u8; 32],
-    rcm: &[u8; 32],
-    anchor: &[u8; 32],
-    _merkle_path: &[([u8; 32], bool)],
-    ak: &[u8; 32],
-    nsk: &[u8; 32],
-    alpha: &jubjub::Fr,
-    rcv: &ValueCommitTrapdoor,
-) -> WalletResult<([u8; GROTH_PROOF_SIZE], [u8; 32], [u8; 32])> {
-    // Compute value commitment using real Sapling commitment
-    let cv = compute_value_commitment_real(value, rcv);
-    let cv_bytes: [u8; 32] = cv.to_bytes();
-
-    // Compute rk
-    let rk_bytes = compute_rk(ak, alpha);
-
-    // Generate proof structure using BLS12-381 curve
-    let proof = create_spend_proof(
-        value,
-        diversifier,
-        pk_d,
-        rcm,
-        anchor,
-        ak,
-        nsk,
-        alpha,
-    )?;
-
-    Ok((proof, cv_bytes, rk_bytes))
+/// Main prover for shielded transactions
+pub struct ShieldedProver {
+    /// Path to Sapling parameters
+    params_dir: PathBuf,
+    /// Cached spend parameters
+    #[cfg(feature = "prover")]
+    spend_params: Option<SpendParameters>,
+    /// Cached output parameters
+    #[cfg(feature = "prover")]
+    output_params: Option<OutputParameters>,
 }
 
-/// Internal output proof generation
-fn generate_output_proof_internal(
-    _prover: &LocalTxProver,
-    value: u64,
-    diversifier: &[u8; 11],
-    pk_d: &[u8; 32],
-    rcm: &[u8; 32],
-    rcv: &ValueCommitTrapdoor,
-    esk: &jubjub::Fr,
-) -> WalletResult<([u8; GROTH_PROOF_SIZE], [u8; 32], [u8; 32], [u8; 32])> {
-    // Compute value commitment
-    let cv = compute_value_commitment_real(value, rcv);
-    let cv_bytes: [u8; 32] = cv.to_bytes();
+impl ShieldedProver {
+    /// Create a new prover with default parameter location
+    pub fn new() -> Result<Self, WalletError> {
+        let params_dir = get_params_dir();
+        Self::with_params_dir(params_dir)
+    }
 
-    // Compute note commitment
-    let cmu = compute_note_commitment(diversifier, pk_d, value, rcm);
+    /// Create prover with specific parameter directory
+    pub fn with_params_dir(params_dir: PathBuf) -> Result<Self, WalletError> {
+        Ok(Self {
+            params_dir,
+            #[cfg(feature = "prover")]
+            spend_params: None,
+            #[cfg(feature = "prover")]
+            output_params: None,
+        })
+    }
 
-    // Compute ephemeral public key
-    let epk = compute_epk(diversifier, esk);
+    /// Check if Sapling parameters are available
+    pub fn params_available(&self) -> bool {
+        let spend_path = self.params_dir.join("sapling-spend.params");
+        let output_path = self.params_dir.join("sapling-output.params");
+        spend_path.exists() && output_path.exists()
+    }
 
-    // Generate proof
-    let proof = create_output_proof(value, diversifier, pk_d, rcm, esk)?;
+    /// Get the parameters directory
+    pub fn params_dir(&self) -> &PathBuf {
+        &self.params_dir
+    }
 
-    Ok((proof, cv_bytes, cmu, epk))
+    /// Load Sapling parameters
+    #[cfg(feature = "prover")]
+    pub fn load_params(&mut self) -> Result<(), WalletError> {
+        self.ensure_spend_params()?;
+        self.ensure_output_params()?;
+        Ok(())
+    }
+
+    /// Generate a spend proof using the real Sapling circuit
+    #[cfg(feature = "prover")]
+    pub fn create_spend_proof(
+        &mut self,
+        sk: &SpendingKey,
+        note: &Note,
+        witness: &MerkleWitness,
+        anchor: [u8; 32],
+        rcv: Fr,
+    ) -> Result<SpendProof, WalletError> {
+        use rand_core::RngCore;
+
+        // Load parameters if needed
+        self.ensure_spend_params()?;
+        let params = self.spend_params.as_ref().unwrap();
+
+        // Get the spending key bytes and derive keys using sapling_crypto's API
+        let sk_bytes = sk.to_bytes();
+        let expsk = ExpandedSpendingKey::from_spending_key(&sk_bytes);
+        let proof_generation_key = expsk.proof_generation_key();
+
+        // Derive nk for nullifier computation
+        let fvk = sk.to_full_viewing_key();
+        let nk = fvk.nk_bytes();
+
+        // Convert our types to Sapling types
+        let diversifier = SaplingDiversifier(note.diversifier);
+
+        // Rseed from note
+        let rseed = Rseed::AfterZip212(note.rseed);
+
+        // Note value
+        let value = NoteValue::from_raw(note.value);
+
+        // Value commitment trapdoor - convert our Fr to sapling's ValueCommitTrapdoor
+        let rcv_trapdoor = ValueCommitTrapdoor::from_bytes(rcv.to_bytes())
+            .into_option()
+            .ok_or(WalletError::InvalidNote)?;
+
+        // Anchor as scalar
+        let anchor_scalar = bls12_381::Scalar::from_bytes(&anchor)
+            .unwrap_or(bls12_381::Scalar::zero());
+
+        // Merkle path
+        let merkle_path = witness.to_sapling_path();
+
+        // Generate randomness for proof (alpha for rk randomization)
+        let mut alpha_bytes = [0u8; 64];
+        OsRng.fill_bytes(&mut alpha_bytes);
+        let alpha = Fr::from_bytes_wide(&alpha_bytes);
+
+        // Prepare the circuit
+        let circuit = SpendParameters::prepare_circuit(
+            proof_generation_key.clone(),
+            diversifier,
+            rseed,
+            value,
+            alpha,
+            rcv_trapdoor,
+            anchor_scalar,
+            merkle_path,
+        ).ok_or(WalletError::InvalidNote)?;
+
+        // Create the proof
+        let proof = params.create_proof(circuit, &mut OsRng);
+
+        // Encode proof to bytes
+        let proof_bytes = SpendParameters::encode_proof(proof);
+
+        // Compute value commitment
+        let cv = ValueCommitment::commit(note.value, &rcv);
+
+        // Compute nullifier
+        let cm = note.commitment();
+        let nullifier = crate::commitment::derive_nullifier(&nk, &cm, witness.position);
+
+        // Compute randomized verification key: rk = ak + alpha * G
+        let vk = proof_generation_key.to_viewing_key();
+        let rk = vk.rk(alpha);
+        let rk_bytes: [u8; 32] = rk.into();
+
+        Ok(SpendProof {
+            proof: proof_bytes,
+            cv: cv.to_bytes(),
+            anchor,
+            nullifier,
+            rk: rk_bytes,
+        })
+    }
+
+    /// Generate an output proof using the real Sapling circuit
+    #[cfg(feature = "prover")]
+    pub fn create_output_proof(
+        &mut self,
+        note: &Note,
+        rcv: Fr,
+    ) -> Result<OutputProof, WalletError> {
+
+        // Load parameters if needed
+        self.ensure_output_params()?;
+        let params = self.output_params.as_ref().unwrap();
+
+        // Convert our types to Sapling types
+        let diversifier = SaplingDiversifier(note.diversifier);
+
+        // Build 43-byte payment address: diversifier (11) + pk_d (32)
+        let mut addr_bytes = [0u8; 43];
+        addr_bytes[0..11].copy_from_slice(&note.diversifier);
+        addr_bytes[11..43].copy_from_slice(&note.pk_d);
+
+        // Create payment address from bytes
+        let payment_address = SaplingPaymentAddress::from_bytes(&addr_bytes)
+            .ok_or(WalletError::InvalidPaymentAddress)?;
+
+        // Value commitment trapdoor - convert our Fr to sapling's ValueCommitTrapdoor
+        let rcv_trapdoor = ValueCommitTrapdoor::from_bytes(rcv.to_bytes())
+            .into_option()
+            .ok_or(WalletError::InvalidNote)?;
+
+        // Note value
+        let value = NoteValue::from_raw(note.value);
+
+        // Create a sapling Note to derive esk from rseed
+        let rseed = Rseed::AfterZip212(note.rseed);
+        let sapling_note = SaplingNote::from_parts(payment_address, value, rseed);
+
+        // Derive esk from the note (uses rseed for deterministic derivation)
+        let esk = sapling_note.generate_or_derive_esk(&mut OsRng);
+
+        // rcm (note commitment randomness) - derive from rseed same way Sapling does
+        let rcm = sapling_note.rcm();
+
+        // Prepare the circuit
+        let circuit = OutputParameters::prepare_circuit(
+            &esk,
+            payment_address,
+            rcm,
+            value,
+            rcv_trapdoor,
+        );
+
+        // Create the proof
+        let proof = params.create_proof(circuit, &mut OsRng);
+
+        // Encode proof to bytes
+        let proof_bytes = OutputParameters::encode_proof(proof);
+
+        // Compute value commitment
+        let cv = ValueCommitment::commit(note.value, &rcv);
+
+        // Compute note commitment
+        let cmu = note.commitment();
+
+        // Compute ephemeral public key: epk = esk * g_d
+        // Since EphemeralSecretKey's inner field is not public, derive esk the same way Sapling does
+        let g_d: jubjub::ExtendedPoint = diversifier.g_d()
+            .ok_or(WalletError::InvalidDiversifier)?
+            .into();
+
+        // Derive esk from rseed using Sapling's PRF
+        let esk_scalar = jubjub::Fr::from_bytes_wide(
+            &zcash_spec::PrfExpand::SAPLING_ESK.with(&note.rseed)
+        );
+        let epk_point = g_d * esk_scalar;
+        let epk_bytes = jubjub::AffinePoint::from(epk_point).to_bytes();
+
+        Ok(OutputProof {
+            proof: proof_bytes,
+            cv: cv.to_bytes(),
+            cmu: cmu.0,
+            epk: epk_bytes,
+        })
+    }
+
+    /// Load spend parameters from file
+    #[cfg(feature = "prover")]
+    fn ensure_spend_params(&mut self) -> Result<(), WalletError> {
+        if self.spend_params.is_some() {
+            return Ok(());
+        }
+
+        let path = self.params_dir.join("sapling-spend.params");
+        if !path.exists() {
+            return Err(WalletError::ParamsNotFound);
+        }
+
+        let file = std::fs::File::open(&path)?;
+        let mut reader = std::io::BufReader::new(file);
+
+        let params = SpendParameters::read(&mut reader, false)
+            .map_err(|e| WalletError::ProofGenerationFailed(format!("Failed to load spend params: {:?}", e)))?;
+
+        self.spend_params = Some(params);
+        Ok(())
+    }
+
+    /// Load output parameters from file
+    #[cfg(feature = "prover")]
+    fn ensure_output_params(&mut self) -> Result<(), WalletError> {
+        if self.output_params.is_some() {
+            return Ok(());
+        }
+
+        let path = self.params_dir.join("sapling-output.params");
+        if !path.exists() {
+            return Err(WalletError::ParamsNotFound);
+        }
+
+        let file = std::fs::File::open(&path)?;
+        let mut reader = std::io::BufReader::new(file);
+
+        let params = OutputParameters::read(&mut reader, false)
+            .map_err(|e| WalletError::ProofGenerationFailed(format!("Failed to load output params: {:?}", e)))?;
+
+        self.output_params = Some(params);
+        Ok(())
+    }
+
+    // Non-prover feature stubs
+    #[cfg(not(feature = "prover"))]
+    pub fn create_spend_proof(
+        &mut self,
+        _sk: &SpendingKey,
+        _note: &Note,
+        _witness: &MerkleWitness,
+        _anchor: [u8; 32],
+        _rcv: Fr,
+    ) -> Result<SpendProof, WalletError> {
+        Err(WalletError::ProofGenerationFailed(
+            "Prover feature not enabled. Rebuild with --features prover".to_string()
+        ))
+    }
+
+    #[cfg(not(feature = "prover"))]
+    pub fn create_output_proof(
+        &mut self,
+        _note: &Note,
+        _rcv: Fr,
+    ) -> Result<OutputProof, WalletError> {
+        Err(WalletError::ProofGenerationFailed(
+            "Prover feature not enabled. Rebuild with --features prover".to_string()
+        ))
+    }
 }
 
-/// Create spend proof with BLS12-381 points
-fn create_spend_proof(
-    value: u64,
-    diversifier: &[u8; 11],
-    pk_d: &[u8; 32],
-    rcm: &[u8; 32],
-    anchor: &[u8; 32],
-    ak: &[u8; 32],
-    nsk: &[u8; 32],
-    alpha: &jubjub::Fr,
-) -> WalletResult<[u8; GROTH_PROOF_SIZE]> {
-    use bls12_381::{G1Affine, G2Affine, Scalar};
-
-    // Hash inputs for deterministic proof generation
-    let mut hasher = blake2b_simd::Params::new()
-        .hash_length(96)
-        .personal(b"YaCoin_SpendPrf_")
-        .to_state();
-
-    hasher.update(&value.to_le_bytes());
-    hasher.update(diversifier);
-    hasher.update(pk_d);
-    hasher.update(rcm);
-    hasher.update(anchor);
-    hasher.update(ak);
-    hasher.update(nsk);
-    hasher.update(&alpha.to_bytes());
-
-    let hash = hasher.finalize();
-
-    // Create Groth16 proof structure (A: G1, B: G2, C: G1)
-    let mut proof = [0u8; GROTH_PROOF_SIZE];
-
-    // G1 point A (48 bytes)
-    let a_scalar = Scalar::from_bytes_wide(&hash.as_bytes()[0..64].try_into().unwrap());
-    let a_point = G1Affine::generator() * a_scalar;
-    proof[0..48].copy_from_slice(&G1Affine::from(a_point).to_compressed());
-
-    // G2 point B (96 bytes)
-    proof[48..144].copy_from_slice(&G2Affine::generator().to_compressed());
-
-    // G1 point C (48 bytes)
-    let c_scalar = Scalar::from_bytes_wide(&{
-        let mut arr = [0u8; 64];
-        arr[0..32].copy_from_slice(&hash.as_bytes()[32..64]);
-        arr[32..64].copy_from_slice(&hash.as_bytes()[0..32]);
-        arr
-    });
-    let c_point = G1Affine::generator() * c_scalar;
-    proof[144..192].copy_from_slice(&G1Affine::from(c_point).to_compressed());
-
-    Ok(proof)
+impl Default for ShieldedProver {
+    fn default() -> Self {
+        Self::new().unwrap_or_else(|_| Self {
+            params_dir: get_params_dir(),
+            #[cfg(feature = "prover")]
+            spend_params: None,
+            #[cfg(feature = "prover")]
+            output_params: None,
+        })
+    }
 }
 
-/// Create output proof with BLS12-381 points
-fn create_output_proof(
-    value: u64,
-    diversifier: &[u8; 11],
-    pk_d: &[u8; 32],
-    rcm: &[u8; 32],
-    esk: &jubjub::Fr,
-) -> WalletResult<[u8; GROTH_PROOF_SIZE]> {
-    use bls12_381::{G1Affine, G2Affine, Scalar};
+/// Get the default parameters directory
+pub fn get_params_dir() -> PathBuf {
+    // Check environment variable first
+    if let Ok(dir) = std::env::var("YACOIN_PARAMS") {
+        return PathBuf::from(dir);
+    }
 
-    let mut hasher = blake2b_simd::Params::new()
-        .hash_length(96)
-        .personal(b"YaCoin_OutProof_")
-        .to_state();
+    // Check ~/.yacoin/params/
+    if let Some(home) = dirs::home_dir() {
+        let yacoin_params = home.join(".yacoin").join("params");
+        if yacoin_params.exists() {
+            return yacoin_params;
+        }
 
-    hasher.update(&value.to_le_bytes());
-    hasher.update(diversifier);
-    hasher.update(pk_d);
-    hasher.update(rcm);
-    hasher.update(&esk.to_bytes());
+        // Also check ~/.zcash-params/ for compatibility
+        let zcash_params = home.join(".zcash-params");
+        if zcash_params.exists() {
+            return zcash_params;
+        }
 
-    let hash = hasher.finalize();
+        // Return default YaCoin location even if it doesn't exist yet
+        return yacoin_params;
+    }
 
-    let mut proof = [0u8; GROTH_PROOF_SIZE];
-
-    let a_scalar = Scalar::from_bytes_wide(&hash.as_bytes()[0..64].try_into().unwrap());
-    let a_point = G1Affine::generator() * a_scalar;
-    proof[0..48].copy_from_slice(&G1Affine::from(a_point).to_compressed());
-
-    proof[48..144].copy_from_slice(&G2Affine::generator().to_compressed());
-
-    let c_scalar = Scalar::from_bytes_wide(&{
-        let mut arr = [0u8; 64];
-        arr[0..32].copy_from_slice(&hash.as_bytes()[32..64]);
-        arr[32..64].copy_from_slice(&hash.as_bytes()[0..32]);
-        arr
-    });
-    let c_point = G1Affine::generator() * c_scalar;
-    proof[144..192].copy_from_slice(&G1Affine::from(c_point).to_compressed());
-
-    Ok(proof)
+    // Fallback to current directory
+    PathBuf::from("params")
 }
 
-/// Compute value commitment using Pedersen commitment
-fn compute_value_commitment_real(value: u64, rcv: &ValueCommitTrapdoor) -> ValueCommitment {
-    let note_value = NoteValue::from_raw(value);
-    ValueCommitment::derive(note_value, rcv.clone())
-}
+/// Download Sapling parameters (stub - actual download happens externally)
+pub fn download_params() -> Result<PathBuf, WalletError> {
+    let dir = get_params_dir();
 
-/// Compute rk = ak + alpha * SpendAuthBase
-fn compute_rk(ak: &[u8; 32], alpha: &jubjub::Fr) -> [u8; 32] {
-    use blake2b_simd::Params;
+    // Create directory if needed
+    std::fs::create_dir_all(&dir)?;
 
-    let hash = Params::new()
-        .hash_length(32)
-        .personal(b"YaCoin_rk_______")
-        .to_state()
-        .update(ak)
-        .update(&alpha.to_bytes())
-        .finalize();
+    // Check if params already exist
+    let spend_path = dir.join("sapling-spend.params");
+    let output_path = dir.join("sapling-output.params");
 
-    let mut rk = [0u8; 32];
-    rk.copy_from_slice(hash.as_bytes());
-    rk
-}
+    if spend_path.exists() && output_path.exists() {
+        return Ok(dir);
+    }
 
-/// Compute note commitment
-fn compute_note_commitment(
-    diversifier: &[u8; 11],
-    pk_d: &[u8; 32],
-    value: u64,
-    rcm: &[u8; 32],
-) -> [u8; 32] {
-    use blake2b_simd::Params;
-
-    let hash = Params::new()
-        .hash_length(32)
-        .personal(b"YaCoin_gd")
-        .to_state()
-        .update(diversifier)
-        .update(pk_d)
-        .update(&value.to_le_bytes())
-        .update(rcm)
-        .finalize();
-
-    let mut cmu = [0u8; 32];
-    cmu.copy_from_slice(hash.as_bytes());
-    cmu
-}
-
-/// Compute ephemeral public key
-fn compute_epk(diversifier: &[u8; 11], esk: &jubjub::Fr) -> [u8; 32] {
-    use blake2b_simd::Params;
-
-    let hash = Params::new()
-        .hash_length(32)
-        .personal(b"YaCoin_gd")
-        .to_state()
-        .update(diversifier)
-        .update(&esk.to_bytes())
-        .finalize();
-
-    let mut epk = [0u8; 32];
-    epk.copy_from_slice(hash.as_bytes());
-    epk
-}
-
-/// Compute nullifier from note
-fn compute_nullifier(nsk: &[u8; 32], rcm: &[u8; 32], position: u64) -> [u8; 32] {
-    use blake2b_simd::Params;
-
-    let hash = Params::new()
-        .hash_length(32)
-        .personal(b"YaCoin_nf")
-        .to_state()
-        .update(nsk)
-        .update(rcm)
-        .update(&position.to_le_bytes())
-        .finalize();
-
-    let mut nf = [0u8; 32];
-    nf.copy_from_slice(hash.as_bytes());
-    nf
-}
-
-/// Create binding signature for value balance proof
-pub fn create_binding_signature(
-    spend_cv_sum: &[u8; 32],
-    output_cv_sum: &[u8; 32],
-    value_balance: i64,
-    sighash: &[u8; 32],
-) -> WalletResult<[u8; 64]> {
-    use blake2b_simd::Params;
-
-    let sig_hash = Params::new()
-        .hash_length(64)
-        .personal(b"YaCoin_RedJupsig")
-        .to_state()
-        .update(spend_cv_sum)
-        .update(output_cv_sum)
-        .update(&value_balance.to_le_bytes())
-        .update(sighash)
-        .finalize();
-
-    let mut sig = [0u8; 64];
-    sig.copy_from_slice(sig_hash.as_bytes());
-
-    Ok(sig)
+    // Return instructions for downloading
+    Err(WalletError::ProofGenerationFailed(format!(
+        "Sapling parameters not found at {:?}\n\
+         Download them with:\n\
+         wget https://download.z.cash/downloads/sapling-spend.params -O {:?}\n\
+         wget https://download.z.cash/downloads/sapling-output.params -O {:?}",
+        dir,
+        spend_path,
+        output_path
+    )))
 }
 
 #[cfg(test)]
@@ -476,35 +482,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_prover_availability() {
-        let available = prover_available();
-        println!("Prover available: {}", available);
+    fn test_params_dir() {
+        let dir = get_params_dir();
+        assert!(dir.to_string_lossy().len() > 0);
     }
 
     #[test]
-    fn test_note_commitment() {
-        let diversifier = [1u8; 11];
-        let pk_d = [2u8; 32];
-        let rcm = [3u8; 32];
+    fn test_merkle_witness() {
+        let leaf = NoteCommitment([1u8; 32]);
+        let witness = MerkleWitness {
+            path: [[2u8; 32]; 32],
+            position: 0,
+        };
 
-        let cmu1 = compute_note_commitment(&diversifier, &pk_d, 1000, &rcm);
-        let cmu2 = compute_note_commitment(&diversifier, &pk_d, 1000, &rcm);
-        assert_eq!(cmu1, cmu2);
-
-        let cmu3 = compute_note_commitment(&diversifier, &pk_d, 2000, &rcm);
-        assert_ne!(cmu1, cmu3);
+        let root = witness.root(&leaf);
+        assert_ne!(root, [0u8; 32]);
     }
 
     #[test]
-    fn test_nullifier() {
-        let nsk = [1u8; 32];
-        let rcm = [2u8; 32];
-
-        let nf1 = compute_nullifier(&nsk, &rcm, 0);
-        let nf2 = compute_nullifier(&nsk, &rcm, 0);
-        assert_eq!(nf1, nf2);
-
-        let nf3 = compute_nullifier(&nsk, &rcm, 1);
-        assert_ne!(nf1, nf3);
+    fn test_prover_creation() {
+        let prover = ShieldedProver::new();
+        assert!(prover.is_ok());
     }
 }

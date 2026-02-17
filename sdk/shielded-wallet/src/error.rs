@@ -1,4 +1,4 @@
-//! Wallet error types
+//! Error types for the shielded wallet
 
 use thiserror::Error;
 
@@ -10,59 +10,36 @@ pub enum WalletError {
     #[error("Invalid viewing key")]
     InvalidViewingKey,
 
-    #[error("Invalid address")]
-    InvalidAddress,
+    #[error("Invalid diversifier - cannot map to curve point")]
+    InvalidDiversifier,
 
-    #[error("Invalid key")]
-    InvalidKey,
-
-    #[error("Invalid merkle root")]
-    InvalidMerkleRoot,
-
-    #[error("Insufficient shielded balance")]
-    InsufficientBalance { have: u64, need: u64 },
-
-    #[error("Insufficient funds")]
-    InsufficientFunds,
-
-    #[error("No notes available to spend")]
-    NoNotesAvailable,
-
-    #[error("Note not spendable")]
-    NoteNotSpendable,
+    #[error("Invalid payment address")]
+    InvalidPaymentAddress,
 
     #[error("Invalid note")]
     InvalidNote,
 
-    #[error("Value balance mismatch")]
-    ValueBalanceMismatch,
+    #[error("Decryption failed")]
+    DecryptionFailed,
+
+    #[error("Invalid proof")]
+    InvalidProof,
 
     #[error("Proof generation failed: {0}")]
     ProofGenerationFailed(String),
 
-    #[error("Transaction building failed: {0}")]
-    TransactionBuildFailed(String),
+    #[error("Sapling parameters not found. Download with: yacoin-params fetch")]
+    ParamsNotFound,
 
-    #[error("Decryption failed")]
-    DecryptionFailed,
+    #[error("Invalid Merkle witness")]
+    InvalidWitness,
 
-    #[error("Decryption error")]
-    DecryptionError,
-
-    #[error("Encryption error")]
-    EncryptionError,
-
-    #[error("Serialization error")]
-    SerializationError,
+    #[error("Insufficient balance: have {have}, need {need}")]
+    InsufficientBalance { have: u64, need: u64 },
 
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
 
-    #[error("Parameters not loaded")]
-    ParamsNotLoaded,
-
-    #[error("Invalid backup")]
-    InvalidBackup,
+    #[error("Serialization error: {0}")]
+    SerializationError(String),
 }
-
-pub type WalletResult<T> = Result<T, WalletError>;
