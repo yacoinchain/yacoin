@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-store-tool"
+name = "solana-store-tool"
 description = "Tool for account storage files"
 publish = false
 version = { workspace = true }

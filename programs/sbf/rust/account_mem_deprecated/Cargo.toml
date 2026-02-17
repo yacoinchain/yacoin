@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-account-mem-deprecated"
+name = "solana-sbf-rust-account-mem-deprecated"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

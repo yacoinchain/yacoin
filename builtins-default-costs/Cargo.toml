@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-builtins-default-costs"
+name = "solana-builtins-default-costs"
 description = "Solana builtins default costs"
 documentation = "https://docs.rs/solana-builtins-default-costs"
 version = { workspace = true }

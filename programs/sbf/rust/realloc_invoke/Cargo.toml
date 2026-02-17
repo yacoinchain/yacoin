@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-realloc-invoke"
+name = "solana-sbf-rust-realloc-invoke"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

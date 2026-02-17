@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-remote-wallet"
+name = "solana-remote-wallet"
 documentation = "https://docs.rs/solana-remote-wallet"
 version = { workspace = true }
 authors = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-feature-set"
+name = "solana-feature-set"
 description = "Solana runtime feature declarations"
 version = { workspace = true }
 authors = { workspace = true }

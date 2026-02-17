@@ -10,15 +10,15 @@ name = "yacoin"
 path = "src/main.rs"
 
 [[bin]]
-name = "yacoin-validator"
+name = "solana-validator"
 path = "src/validator.rs"
 
 [[bin]]
-name = "yacoin-keygen"
+name = "solana-keygen"
 path = "src/keygen.rs"
 
 [[bin]]
-name = "yacoin-genesis"
+name = "solana-genesis"
 path = "src/genesis.rs"
 
 [dependencies]

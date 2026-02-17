@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-install"
+name = "solana-install"
 description = "The solana cluster software installer"
 documentation = "https://docs.rs/agave-install"
 version = { workspace = true }

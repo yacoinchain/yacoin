@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-custom-heap"
+name = "solana-sbf-rust-custom-heap"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

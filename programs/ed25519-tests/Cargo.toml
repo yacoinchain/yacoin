@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-ed25519-program-tests"
+name = "solana-ed25519-program-tests"
 publish = false
 version = { workspace = true }
 authors = { workspace = true }

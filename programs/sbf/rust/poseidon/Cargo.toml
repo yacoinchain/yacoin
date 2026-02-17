@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-poseidon"
+name = "solana-sbf-rust-poseidon"
 description = "Solana SBF test program written in Rust"
 version = { workspace = true }
 authors = { workspace = true }

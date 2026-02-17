@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-client-test"
+name = "solana-client-test"
 description = "Solana RPC Test"
 documentation = "https://docs.rs/solana-client-test"
 publish = false

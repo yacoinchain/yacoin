@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-stake-accounts"
+name = "solana-stake-accounts"
 documentation = "https://docs.rs/solana-stake-accounts"
 version = { workspace = true }
 authors = { workspace = true }

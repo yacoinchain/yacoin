@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-shielded-wallet"
+name = "solana-shielded-wallet"
 description = "YaCoin Shielded Wallet SDK - Create and manage shielded transactions"
 version = "0.1.0"
 authors = ["YaCoin Developers"]

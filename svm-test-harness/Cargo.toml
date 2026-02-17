@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-svm-test-harness"
+name = "solana-svm-test-harness"
 description = "Solana SVM test harness."
 documentation = "https://docs.rs/solana-svm-test-harness"
 version = { workspace = true }

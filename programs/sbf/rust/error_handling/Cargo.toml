@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-error-handling"
+name = "solana-sbf-rust-error-handling"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

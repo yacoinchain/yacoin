@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-svm-rent-calculator"
+name = "solana-svm-rent-calculator"
 description = "Solana SVM Rent Calculator"
 documentation = "https://docs.rs/solana-svm-rent-calculator"
 version = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-cli-output"
+name = "solana-cli-output"
 documentation = "https://docs.rs/solana-cli-output"
 version = { workspace = true }
 authors = { workspace = true }

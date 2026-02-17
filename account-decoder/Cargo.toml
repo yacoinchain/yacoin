@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-account-decoder"
+name = "solana-account-decoder"
 description = "Solana account decoder"
 documentation = "https://docs.rs/solana-account-decoder"
 version = { workspace = true }

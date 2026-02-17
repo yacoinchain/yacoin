@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-remaining-compute-units"
+name = "solana-sbf-rust-remaining-compute-units"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

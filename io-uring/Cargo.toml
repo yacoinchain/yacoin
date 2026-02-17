@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-io-uring"
+name = "solana-io-uring"
 description = "Agave io_uring wrapper"
 documentation = "https://docs.rs/agave-io-uring"
 version = { workspace = true }

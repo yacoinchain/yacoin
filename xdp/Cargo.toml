@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-xdp"
+name = "solana-xdp"
 description = "Agave XDP implementation"
 version = { workspace = true }
 repository = { workspace = true }

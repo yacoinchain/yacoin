@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-validator"
+name = "solana-validator"
 readme = "../README.md"
 documentation = "https://docs.rs/agave-validator"
 default-run = "yacoin-validator"

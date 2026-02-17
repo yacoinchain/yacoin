@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-inner_instruction_alignment_check"
+name = "solana-sbf-rust-inner_instruction_alignment_check"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

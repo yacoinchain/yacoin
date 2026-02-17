@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-precompiles"
+name = "solana-precompiles"
 description = "Solana precompiled programs."
 documentation = "https://docs.rs/agave-precompiles"
 version = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-tpu-client-next"
+name = "solana-tpu-client-next"
 description = "Client code to send transaction to TPU."
 version = { workspace = true }
 authors = { workspace = true }

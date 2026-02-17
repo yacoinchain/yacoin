@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-lattice-hash"
+name = "solana-lattice-hash"
 description = "Solana Lattice Hash"
 version = { workspace = true }
 authors = { workspace = true }

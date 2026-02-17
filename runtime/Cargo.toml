@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-runtime"
+name = "solana-runtime"
 description = "Solana runtime"
 documentation = "https://docs.rs/solana-runtime"
 version = { workspace = true }

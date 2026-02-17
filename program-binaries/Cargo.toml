@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-program-binaries"
+name = "solana-program-binaries"
 description = "Prebuilt SPL and Core BPF programs"
 version = { workspace = true }
 authors = { workspace = true }

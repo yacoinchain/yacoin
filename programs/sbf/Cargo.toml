@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-programs"
+name = "solana-sbf-programs"
 documentation = "https://docs.rs/solana"
 readme = "README.md"
 publish = false

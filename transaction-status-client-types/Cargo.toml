@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-transaction-status-client-types"
+name = "solana-transaction-status-client-types"
 description = "Core RPC client types for solana-transaction-status"
 documentation = "https://docs.rs/solana-transaction-status-client-types"
 version = { workspace = true }

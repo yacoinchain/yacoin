@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-transaction-context"
+name = "solana-transaction-context"
 description = "Solana data shared between program runtime and built-in programs as well as SBF programs."
 documentation = "https://docs.rs/solana-transaction-context"
 version = { workspace = true }

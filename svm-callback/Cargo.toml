@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-svm-callback"
+name = "solana-svm-callback"
 description = "Solana SVM callback"
 version = { workspace = true }
 authors = { workspace = true }

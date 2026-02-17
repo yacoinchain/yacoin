@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-logger"
+name = "solana-logger"
 description = "Agave Logger"
 documentation = "https://docs.rs/agave-logger"
 version = { workspace = true }

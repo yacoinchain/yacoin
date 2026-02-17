@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-syscall-get-epoch-stake"
+name = "solana-sbf-syscall-get-epoch-stake"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

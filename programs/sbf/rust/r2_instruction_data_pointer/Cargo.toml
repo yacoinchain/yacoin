@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-r2-instruction-data-pointer"
+name = "solana-sbf-rust-r2-instruction-data-pointer"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

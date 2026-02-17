@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-scheduling-utils"
+name = "solana-scheduling-utils"
 description = "Common utilities for building Agave scheduler implementations"
 documentation = "https://docs.rs/agave-scheduling-utils"
 version = { workspace = true }

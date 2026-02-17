@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-banks-client"
+name = "solana-banks-client"
 description = "Solana banks client"
 documentation = "https://docs.rs/solana-banks-client"
 version = { workspace = true }

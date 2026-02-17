@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-clap-v3-utils"
+name = "solana-clap-v3-utils"
 description = "Solana utilities for the clap v3"
 documentation = "https://docs.rs/solana-clap-utils"
 version = { workspace = true }

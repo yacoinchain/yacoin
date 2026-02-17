@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-gossip-bin"
+name = "solana-gossip-bin"
 version = { workspace = true }
 authors = { workspace = true }
 description = "Binary crate providing the Solana Gossip command-line tool."
@@ -10,7 +10,7 @@ publish = false
 edition = { workspace = true }
 
 [[bin]]
-name = "yacoin-gossip"
+name = "solana-gossip"
 path = "src/main.rs"
 bench = false
 

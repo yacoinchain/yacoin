@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-sibling-instructions"
+name = "solana-sbf-rust-sibling-instructions"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

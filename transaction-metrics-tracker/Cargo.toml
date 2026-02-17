@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-transaction-metrics-tracker"
+name = "solana-transaction-metrics-tracker"
 description = "Solana transaction metrics tracker"
 documentation = "https://docs.rs/solana-transaction-metrics-tracker"
 version = { workspace = true }

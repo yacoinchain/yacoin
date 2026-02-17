@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-get-minimum-delegation"
+name = "solana-sbf-rust-get-minimum-delegation"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

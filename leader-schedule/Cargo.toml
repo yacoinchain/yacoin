@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-leader-schedule"
+name = "solana-leader-schedule"
 description = "Solana leader schedule"
 documentation = "https://docs.rs/solana-leader-schedule"
 version = { workspace = true }

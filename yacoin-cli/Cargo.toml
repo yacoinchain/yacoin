@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-cli"
+name = "solana-cli"
 description = "YaCoin CLI for shielded transactions"
 version = { workspace = true }
 authors = { workspace = true }

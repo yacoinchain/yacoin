@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-accounts-cluster-bench"
+name = "solana-accounts-cluster-bench"
 publish = false
 version = { workspace = true }
 authors = { workspace = true }

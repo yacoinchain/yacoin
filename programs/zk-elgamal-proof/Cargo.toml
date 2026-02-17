@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-zk-elgamal-proof-program"
+name = "solana-zk-elgamal-proof-program"
 description = "Solana Zk ElGamal Proof Program"
 version = { workspace = true }
 authors = { workspace = true }

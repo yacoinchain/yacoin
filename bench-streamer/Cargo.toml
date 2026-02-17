@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-bench-streamer"
+name = "solana-bench-streamer"
 publish = false
 version = { workspace = true }
 authors = { workspace = true }

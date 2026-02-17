@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-divide-by-zero"
+name = "solana-sbf-rust-divide-by-zero"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

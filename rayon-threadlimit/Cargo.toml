@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-rayon-threadlimit"
+name = "solana-rayon-threadlimit"
 description = "solana-rayon-threadlimit"
 documentation = "https://docs.rs/solana-rayon-threadlimit"
 version = { workspace = true }

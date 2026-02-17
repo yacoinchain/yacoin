@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-transaction-view"
+name = "solana-transaction-view"
 description = "Agave TranactionView"
 documentation = "https://docs.rs/agave-transaction-view"
 version = { workspace = true }

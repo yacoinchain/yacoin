@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-svm-timings"
+name = "solana-svm-timings"
 description = "Solana Execution Timings"
 documentation = "https://docs.rs/solana-svm-timings"
 version = { workspace = true }

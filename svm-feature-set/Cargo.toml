@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-svm-feature-set"
+name = "solana-svm-feature-set"
 description = "Solana SVM Feature Set"
 version = { workspace = true }
 authors = { workspace = true }

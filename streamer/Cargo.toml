@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-streamer"
+name = "solana-streamer"
 description = "Solana Streamer"
 documentation = "https://docs.rs/solana-streamer"
 version = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-faucet"
+name = "solana-faucet"
 description = "Solana Faucet"
 documentation = "https://docs.rs/solana-faucet"
 version = { workspace = true }

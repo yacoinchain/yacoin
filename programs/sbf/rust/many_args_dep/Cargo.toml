@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-many-args-dep"
+name = "solana-sbf-rust-many-args-dep"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }

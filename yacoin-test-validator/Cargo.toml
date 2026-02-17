@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-test-validator"
+name = "solana-test-validator"
 description = "YaCoin Test Validator - Local development node with shielded transactions"
 version = { workspace = true }
 authors = { workspace = true }
@@ -8,7 +8,7 @@ license = { workspace = true }
 edition = { workspace = true }
 
 [[bin]]
-name = "yacoin-test-validator"
+name = "solana-test-validator"
 path = "src/main.rs"
 
 [dependencies]

@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-watchtower"
+name = "solana-watchtower"
 documentation = "https://docs.rs/agave-watchtower"
 version = { workspace = true }
 authors = { workspace = true }

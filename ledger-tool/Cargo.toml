@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-ledger-tool"
+name = "solana-ledger-tool"
 documentation = "https://docs.rs/agave-ledger-tool"
 version = { workspace = true }
 authors = { workspace = true }

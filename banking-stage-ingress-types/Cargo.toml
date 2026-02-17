@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-banking-stage-ingress-types"
+name = "solana-banking-stage-ingress-types"
 description = "Agave banking stage ingress types"
 documentation = "https://docs.rs/agave-banking-stage-ingress-types"
 version = { workspace = true }

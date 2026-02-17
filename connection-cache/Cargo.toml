@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-connection-cache"
+name = "solana-connection-cache"
 description = "Solana Connection Cache"
 documentation = "https://docs.rs/solana-connection-cache"
 version = { workspace = true }

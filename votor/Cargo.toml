@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-votor"
+name = "solana-votor"
 documentation = "https://docs.rs/agave-votor"
 version = { workspace = true }
 authors = { workspace = true }

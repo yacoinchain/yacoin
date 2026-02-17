@@ -1,5 +1,5 @@
 [package]
-name = "yacoin-sbf-rust-noop"
+name = "solana-sbf-rust-noop"
 version = { workspace = true }
 description = { workspace = true }
 authors = { workspace = true }
