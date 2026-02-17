@@ -120,7 +120,7 @@ rand = { workspace = true }
 borsh = { workspace = true }
 
 # Shielded transaction support
-yacoin-shielded-transfer = { path = "../programs/shielded-transfer", default-features = false }
+yacoin-shielded-transfer = { path = "../programs/shielded-transfer", features = ["sapling"] }
 yacoin-shielded-wallet = { path = "../sdk/shielded-wallet", features = ["prover"] }
 jubjub = "0.10"
 
