@@ -569,14 +569,13 @@ fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error:
                 println!("Pool balance: {} lamports", account.lamports);
                 return Ok(());
             }
+            println!("Pool account exists but not initialized. Initializing...");
         }
         Err(_) => {
-            println!("Pool account does not exist. Need to add to genesis.");
-            println!();
-            println!("Run: yacoin-shielded-cli genesis-accounts -o shielded-pool-genesis.yaml");
-            println!("Then regenerate genesis with:");
-            println!("  yacoin-genesis ... --primordial-accounts-file shielded-pool-genesis.yaml");
-            return Err("Pool account must be created in genesis".into());
+            println!("Pool account does not exist.");
+            println!("Start validator with: --account-dir genesis-accounts");
+            println!("Or run: ./setup-genesis.sh first");
+            return Err("Pool account must exist. Run setup-genesis.sh and restart validator with --account-dir genesis-accounts".into());
         }
     }
 
