@@ -498,15 +498,17 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
             println!("Shielded {} YAC to {}", amount as f64 / 1_000_000_000.0, address_str);
         }
         Err(e) => {
-            // If pool not initialized, give helpful message
             let err_str = format!("{}", e);
-            if err_str.contains("AccountNotFound") || err_str.contains("invalid account data") {
+            println!();
+            println!("Transaction error: {}", err_str);
+
+            // Give helpful hints based on error type
+            if err_str.contains("AccountNotFound") {
                 println!();
-                println!("Error: Shielded pool not initialized.");
+                println!("Hint: Pool accounts may not exist. Run: yacoin-shielded-cli init-pool");
+            } else if err_str.contains("invalid account data") || err_str.contains("InvalidAccountData") {
                 println!();
-                println!("The shielded pool accounts need to be created first.");
-                println!("Run: yacoin-shielded-cli init-pool");
-                return Err("Pool not initialized".into());
+                println!("Hint: Pool may need initialization. Run: yacoin-shielded-cli init-pool --keypair <key>");
             }
             return Err(format!("Transaction failed: {}", e).into());
         }
