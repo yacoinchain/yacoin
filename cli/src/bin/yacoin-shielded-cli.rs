@@ -523,6 +523,7 @@ fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error:
     use solana_transaction::Transaction;
     use solana_message::Message;
     use solana_instruction::{Instruction, AccountMeta};
+    use solana_compute_budget_interface::ComputeBudgetInstruction;
     use yacoin_shielded_transfer::{id, ShieldedInstruction};
 
     println!("Initializing shielded pool...");
@@ -584,8 +585,11 @@ fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error:
 
     println!("Submitting InitializePool transaction...");
 
+    // Add compute budget for initialization
+    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(500_000);
+
     let blockhash = client.get_latest_blockhash()?;
-    let message = Message::new(&[init_instruction], Some(&payer.pubkey()));
+    let message = Message::new(&[compute_budget_ix, init_instruction], Some(&payer.pubkey()));
     let mut tx = Transaction::new_unsigned(message);
     tx.sign(&[&payer], blockhash);
 
