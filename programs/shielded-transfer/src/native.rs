@@ -352,12 +352,20 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
                     .map_err(|_| InstructionError::InvalidAccountData)?;
             }
 
-            let tree = IncrementalMerkleTree::new();
+            // Write a simple marker to test account write works
+            // Tree structure: root (32) + size (8) + frontier_len (4)
             {
                 let mut tree_data = instruction_context
                     .try_borrow_instruction_account(1)?;
-                save_commitment_tree(&tree, tree_data.get_data_mut()?)
-                    .map_err(|_| InstructionError::InvalidAccountData)?;
+                let data = tree_data.get_data_mut()?;
+                // Write a recognizable pattern: 0xAA for root, size=0, frontier_len=0
+                for i in 0..32 {
+                    data[i] = 0xAA; // marker in root
+                }
+                // size = 0 (8 bytes little-endian)
+                data[32..40].copy_from_slice(&0u64.to_le_bytes());
+                // frontier vec length = 0 (4 bytes little-endian)
+                data[40..44].copy_from_slice(&0u32.to_le_bytes());
             }
 
             let nullifiers = NullifierSetAccount {
