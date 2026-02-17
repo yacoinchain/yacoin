@@ -54,31 +54,22 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
 
     match instruction {
         ShieldedInstruction::Shield { amount, output } => {
-            // Accounts: 0=Funder, 1=Pool, 2=Tree, 3=Anchors
-            if num_accounts < 4 {
+            // Accounts: 0=Funder, 1=Pool, 2=Tree, 3=System Program
+            if num_accounts < 3 {
                 return Err(InstructionError::MissingAccount);
             }
 
-            // Transfer lamports from funder to pool
+            // Verify funder is a signer
             {
-                let mut funder = instruction_context
+                let funder = instruction_context
                     .try_borrow_instruction_account(0)?;
-
-                // Verify funder is a signer
                 if !funder.is_signer() {
                     return Err(InstructionError::MissingRequiredSignature);
                 }
-
-                // Debit funder
-                funder.checked_sub_lamports(amount)?;
             }
-            {
-                let mut pool = instruction_context
-                    .try_borrow_instruction_account(1)?;
 
-                // Credit pool
-                pool.checked_add_lamports(amount)?;
-            }
+            // Note: Lamport transfer from funder to pool is done via System Program
+            // in a separate instruction before this one. The CLI handles this.
 
             // Load state
             let pool_data = instruction_context
