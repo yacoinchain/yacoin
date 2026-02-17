@@ -20,12 +20,11 @@ use crate::{
     accounts::{
         NullifierSetAccount, RecentAnchorsAccount,
         load_pool_state, save_pool_state,
-        load_commitment_tree, save_commitment_tree,
+        load_commitment_tree,
         load_nullifier_set, save_nullifier_set,
         load_recent_anchors, save_recent_anchors,
         MAX_RECENT_ANCHORS,
     },
-    commitment_tree::IncrementalMerkleTree,
     instruction::ShieldedInstruction,
     processor::{
         process_shield, process_unshield, process_shielded_transfer,
@@ -380,8 +379,9 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
                     .map_err(|_| InstructionError::InvalidAccountData)?;
             }
 
+            // Use a dummy root for anchors (all 0xAA to match tree marker)
             let anchors = RecentAnchorsAccount {
-                anchors: vec![tree.root()],
+                anchors: vec![[0xAA; 32]],
                 position: 1,
                 max_size: MAX_RECENT_ANCHORS as u64,
             };
