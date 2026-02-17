@@ -346,7 +346,6 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     use yacoin_shielded_wallet::prover::{ShieldedProver, get_params_dir};
     use yacoin_shielded_wallet::keys::SpendingKey;
     use yacoin_shielded_wallet::note::Note;
-    use ff::Field;
 
     // Load shielded wallet
     let wallet_data: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(wallet)?)?;
@@ -402,7 +401,9 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     prover.load_params()?;
 
     // Generate random value commitment trapdoor
-    let rcv = jubjub::Fr::random(&mut rand::rng());
+    let mut rcv_bytes = [0u8; 64];
+    rand::RngCore::fill_bytes(&mut rand::rng(), &mut rcv_bytes);
+    let rcv = jubjub::Fr::from_bytes_wide(&rcv_bytes);
     let output_proof = prover.create_output_proof(&note, rcv)?;
 
     // Build the OutputDescription

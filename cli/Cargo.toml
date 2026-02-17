@@ -123,7 +123,6 @@ borsh = { workspace = true }
 yacoin-shielded-transfer = { path = "../programs/shielded-transfer", features = ["sapling"] }
 yacoin-shielded-wallet = { path = "../sdk/shielded-wallet", features = ["prover"] }
 jubjub = "0.10"
-ff = "0.13"
 
 [dev-dependencies]
 assert_matches = { workspace = true }
