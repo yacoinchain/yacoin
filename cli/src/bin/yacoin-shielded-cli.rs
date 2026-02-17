@@ -336,6 +336,7 @@ fn cmd_balance(wallet: &PathBuf, url: &str) -> Result<(), Box<dyn std::error::Er
 
 fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &str) -> Result<(), Box<dyn std::error::Error>> {
     use solana_keypair::read_keypair_file;
+    use solana_signer::Signer;
     use solana_rpc_client::rpc_client::RpcClient;
     use solana_pubkey::Pubkey;
     use solana_transaction::Transaction;
@@ -345,7 +346,7 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     use yacoin_shielded_wallet::prover::{ShieldedProver, get_params_dir};
     use yacoin_shielded_wallet::keys::SpendingKey;
     use yacoin_shielded_wallet::note::Note;
-    use jubjub::Fr;
+    use ff::Field;
 
     // Load shielded wallet
     let wallet_data: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(wallet)?)?;
@@ -354,10 +355,10 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     let mut seed = [0u8; 32];
     seed.copy_from_slice(&seed_bytes[..32]);
 
-    let address = generate_shielded_address(&seed, 0);
+    let address_str = generate_shielded_address(&seed, 0);
 
     println!("Shielding {} lamports ({:.9} YAC)", amount, amount as f64 / 1_000_000_000.0);
-    println!("To shielded address: {}", address);
+    println!("To shielded address: {}", address_str);
     println!("RPC: {}", url);
     println!();
 
@@ -386,12 +387,13 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     // Create the spending key from seed
     let sk = SpendingKey::from_seed(&seed);
 
+    // Get payment address from full viewing key
+    let fvk = sk.to_full_viewing_key();
+    let payment_address = fvk.default_address()
+        .map_err(|e| format!("Failed to derive address: {:?}", e))?;
+
     // Create a note for the shielded output
-    let note = Note::new(
-        sk.default_diversifier(),
-        sk.to_full_viewing_key().to_payment_address().pk_d,
-        amount,
-    );
+    let note = Note::new(&payment_address, amount);
 
     println!("Generating zk-SNARK proof...");
 
@@ -400,7 +402,7 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     prover.load_params()?;
 
     // Generate random value commitment trapdoor
-    let rcv = Fr::random(&mut rand::rng());
+    let rcv = jubjub::Fr::random(&mut rand::rng());
     let output_proof = prover.create_output_proof(&note, rcv)?;
 
     // Build the OutputDescription
@@ -454,7 +456,7 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
             println!();
             println!("Success! Transaction signature: {}", signature);
             println!();
-            println!("Shielded {} YAC to {}", amount as f64 / 1_000_000_000.0, address);
+            println!("Shielded {} YAC to {}", amount as f64 / 1_000_000_000.0, address_str);
         }
         Err(e) => {
             // If pool not initialized, give helpful message
