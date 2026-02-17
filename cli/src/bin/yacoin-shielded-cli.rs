@@ -4,7 +4,6 @@
 
 use clap::{App, Arg, SubCommand};
 use std::path::PathBuf;
-use std::io::{self, Write};
 
 fn main() {
     let matches = App::new("yacoin-shielded-cli")
@@ -188,6 +187,10 @@ fn main() {
                         .takes_value(true),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("init-pool")
+                .about("Initialize the shielded pool (admin only)")
+        )
         .get_matches();
 
     let url = matches.value_of("url").unwrap();
@@ -230,6 +233,9 @@ fn main() {
             let wallet = PathBuf::from(sub_m.value_of("wallet").unwrap());
             let output = sub_m.value_of("output").map(PathBuf::from);
             cmd_export_viewing_key(&wallet, output.as_ref())
+        }
+        ("init-pool", Some(_)) => {
+            cmd_init_pool(url)
         }
         _ => {
             eprintln!("No command specified. Use --help for usage.");
@@ -329,25 +335,176 @@ fn cmd_balance(wallet: &PathBuf, url: &str) -> Result<(), Box<dyn std::error::Er
 }
 
 fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use solana_keypair::read_keypair_file;
+    use solana_rpc_client::rpc_client::RpcClient;
+    use solana_pubkey::Pubkey;
+    use solana_transaction::Transaction;
+    use solana_message::Message;
+    use solana_instruction::Instruction;
+    use yacoin_shielded_transfer::{OutputDescription, ShieldedInstruction, id, ENC_CIPHERTEXT_SIZE, OUT_CIPHERTEXT_SIZE};
+    use yacoin_shielded_wallet::prover::{ShieldedProver, get_params_dir};
+    use yacoin_shielded_wallet::keys::SpendingKey;
+    use yacoin_shielded_wallet::note::Note;
+    use jubjub::Fr;
+
+    // Load shielded wallet
     let wallet_data: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(wallet)?)?;
     let seed_hex = wallet_data["seed_hex"].as_str().ok_or("Invalid wallet file")?;
-    let seed = hex::decode(seed_hex)?;
+    let seed_bytes = hex::decode(seed_hex)?;
+    let mut seed = [0u8; 32];
+    seed.copy_from_slice(&seed_bytes[..32]);
 
     let address = generate_shielded_address(&seed, 0);
 
     println!("Shielding {} lamports ({:.9} YAC)", amount, amount as f64 / 1_000_000_000.0);
     println!("To shielded address: {}", address);
     println!("RPC: {}", url);
+    println!();
 
-    if keypair.is_none() {
+    // Check for keypair
+    let keypair_path = keypair.ok_or("Please specify a transparent keypair with --keypair")?;
+    let payer = read_keypair_file(keypair_path)
+        .map_err(|e| format!("Failed to read keypair: {}", e))?;
+
+    // Check Sapling parameters
+    let params_dir = get_params_dir();
+    let spend_params_path = params_dir.join("sapling-spend.params");
+    let output_params_path = params_dir.join("sapling-output.params");
+
+    if !spend_params_path.exists() || !output_params_path.exists() {
+        println!("Sapling parameters not found at: {}", params_dir.display());
         println!();
-        println!("Error: Please specify a transparent keypair with --keypair");
-        return Ok(());
+        println!("Download them with:");
+        println!("  mkdir -p {}", params_dir.display());
+        println!("  curl -L https://download.z.cash/downloads/sapling-spend.params -o {}", spend_params_path.display());
+        println!("  curl -L https://download.z.cash/downloads/sapling-output.params -o {}", output_params_path.display());
+        return Err("Sapling parameters required".into());
     }
 
+    println!("Loading Sapling parameters...");
+
+    // Create the spending key from seed
+    let sk = SpendingKey::from_seed(&seed);
+
+    // Create a note for the shielded output
+    let note = Note::new(
+        sk.default_diversifier(),
+        sk.to_full_viewing_key().to_payment_address().pk_d,
+        amount,
+    );
+
+    println!("Generating zk-SNARK proof...");
+
+    // Generate the output proof
+    let mut prover = ShieldedProver::new()?;
+    prover.load_params()?;
+
+    // Generate random value commitment trapdoor
+    let rcv = Fr::random(&mut rand::rng());
+    let output_proof = prover.create_output_proof(&note, rcv)?;
+
+    // Build the OutputDescription
+    let output_desc = OutputDescription {
+        cv: output_proof.cv,
+        cmu: output_proof.cmu,
+        ephemeral_key: output_proof.epk,
+        enc_ciphertext: [0u8; ENC_CIPHERTEXT_SIZE], // TODO: real encryption
+        out_ciphertext: [0u8; OUT_CIPHERTEXT_SIZE], // TODO: real encryption
+        zkproof: output_proof.proof,
+    };
+
+    // Build the Shield instruction
+    let instruction_data = ShieldedInstruction::Shield {
+        amount,
+        output: output_desc,
+    };
+
+    let program_id = id::ID;
+
+    // Derive pool and tree addresses
+    let (pool_address, _) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
+    let (tree_address, _) = Pubkey::find_program_address(&[b"commitment_tree"], &program_id);
+
+    let instruction = Instruction {
+        program_id,
+        accounts: vec![
+            solana_instruction::AccountMeta::new(payer.pubkey(), true),
+            solana_instruction::AccountMeta::new(pool_address, false),
+            solana_instruction::AccountMeta::new(tree_address, false),
+        ],
+        data: borsh::to_vec(&instruction_data)?,
+    };
+
+    println!("Submitting transaction...");
+
+    // Connect to RPC
+    let client = RpcClient::new(url.to_string());
+
+    // Get recent blockhash
+    let blockhash = client.get_latest_blockhash()?;
+
+    // Build transaction
+    let message = Message::new(&[instruction], Some(&payer.pubkey()));
+    let mut tx = Transaction::new_unsigned(message);
+    tx.sign(&[&payer], blockhash);
+
+    // Submit transaction
+    match client.send_and_confirm_transaction(&tx) {
+        Ok(signature) => {
+            println!();
+            println!("Success! Transaction signature: {}", signature);
+            println!();
+            println!("Shielded {} YAC to {}", amount as f64 / 1_000_000_000.0, address);
+        }
+        Err(e) => {
+            // If pool not initialized, give helpful message
+            let err_str = format!("{}", e);
+            if err_str.contains("AccountNotFound") || err_str.contains("invalid account data") {
+                println!();
+                println!("Error: Shielded pool not initialized.");
+                println!();
+                println!("The shielded pool accounts need to be created first.");
+                println!("Run: yacoin-shielded-cli init-pool");
+                return Err("Pool not initialized".into());
+            }
+            return Err(format!("Transaction failed: {}", e).into());
+        }
+    }
+
+    Ok(())
+}
+
+fn cmd_init_pool(url: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use solana_rpc_client::rpc_client::RpcClient;
+    use solana_pubkey::Pubkey;
+    use yacoin_shielded_transfer::id;
+
+    println!("Checking shielded pool status...");
+    println!("RPC: {}", url);
     println!();
-    println!("Note: Full shielding requires Sapling parameters (~1GB).");
-    println!("      Download with: yacoin fetch-params");
+
+    let client = RpcClient::new(url.to_string());
+    let program_id = id::ID;
+
+    // Derive pool address
+    let (pool_address, _) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
+
+    // Check if pool exists
+    match client.get_account(&pool_address) {
+        Ok(_) => {
+            println!("Shielded pool already initialized at: {}", pool_address);
+        }
+        Err(_) => {
+            println!("Shielded pool not yet initialized.");
+            println!();
+            println!("Pool address: {}", pool_address);
+            println!("Program ID: {}", program_id);
+            println!();
+            println!("Note: The shielded pool is initialized as a builtin program.");
+            println!("      If running a custom genesis, ensure the shielded-transfer");
+            println!("      program is included in the builtin programs.");
+        }
+    }
 
     Ok(())
 }
@@ -358,7 +515,8 @@ fn cmd_unshield(amount: u64, wallet: &PathBuf, to: &str, url: &str) -> Result<()
     println!("From wallet: {}", wallet.display());
     println!("RPC: {}", url);
     println!();
-    println!("Note: Full unshielding requires Sapling parameters.");
+    println!("Note: Unshield requires spending a shielded note.");
+    println!("      This feature is coming soon.");
 
     Ok(())
 }
@@ -382,7 +540,8 @@ fn cmd_transfer(amount: u64, wallet: &PathBuf, to: &str, memo: Option<&str>, url
     println!("  - Recipient address: hidden");
     println!("  - Amount: hidden");
     println!();
-    println!("Note: Full shielded transfers require Sapling parameters.");
+    println!("Note: Shielded transfers require existing shielded balance.");
+    println!("      This feature is coming soon.");
 
     Ok(())
 }
