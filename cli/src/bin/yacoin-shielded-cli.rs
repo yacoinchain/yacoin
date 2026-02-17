@@ -585,8 +585,8 @@ fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error:
 
     println!("Submitting InitializePool transaction...");
 
-    // Add compute budget for initialization
-    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(500_000);
+    // Add compute budget for initialization (native program needs plenty)
+    let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(1_400_000);
 
     let blockhash = client.get_latest_blockhash()?;
     let message = Message::new(&[compute_budget_ix, init_instruction], Some(&payer.pubkey()));
