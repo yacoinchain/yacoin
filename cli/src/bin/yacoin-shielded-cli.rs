@@ -452,20 +452,19 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
 
     let program_id = id::ID;
 
-    // Derive pool and tree addresses
+    // Derive all PDA addresses
     let (pool_address, _) = Pubkey::find_program_address(&[b"shielded_pool"], &program_id);
     let (tree_address, _) = Pubkey::find_program_address(&[b"commitment_tree"], &program_id);
+    let (anchor_address, _) = Pubkey::find_program_address(&[b"recent_anchors"], &program_id);
 
-    // System program for creating accounts
-    let system_program = solana_pubkey::Pubkey::new_from_array([0u8; 32]); // System program = all zeros
-
+    // Shield instruction: 0=Funder, 1=Pool, 2=Tree, 3=Anchors
     let shield_instruction = Instruction {
         program_id,
         accounts: vec![
             solana_instruction::AccountMeta::new(payer.pubkey(), true),
             solana_instruction::AccountMeta::new(pool_address, false),
             solana_instruction::AccountMeta::new(tree_address, false),
-            solana_instruction::AccountMeta::new_readonly(system_program, false),
+            solana_instruction::AccountMeta::new(anchor_address, false),
         ],
         data: borsh::to_vec(&instruction_data)?,
     };
