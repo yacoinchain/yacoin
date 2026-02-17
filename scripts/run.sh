@@ -16,7 +16,7 @@ else
 fi
 
 
-profile=debug
+profile=release
 if [[ -n $CARGO_BUILD_PROFILE ]]; then
   profile=$CARGO_BUILD_PROFILE
 fi
