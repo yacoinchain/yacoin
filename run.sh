@@ -1,22 +1,27 @@
 #!/bin/bash
 set -e
 
-echo "=== YaCoin v2 Build & Run ==="
+# If not already pulled, pull and re-exec
+if [ "$YACOIN_PULLED" != "1" ]; then
+    echo "=== YaCoin v2 Build & Run ==="
+    echo "Pulling latest from git..."
+    git fetch origin
+    git reset --hard origin/master
+    export YACOIN_PULLED=1
+    exec bash "$0" "$@"
+fi
 
-# Kill any existing validator processes
 echo "Stopping any running validators..."
 pkill -9 -f "yacoin" 2>/dev/null || true
 pkill -9 -f "solana" 2>/dev/null || true
 pkill -9 -f "validator" 2>/dev/null || true
 
-# Kill processes on validator ports using ss (more reliable than fuser)
+# Kill processes on validator ports
 kill_port() {
     local port=$1
-    # Kill TCP
     for pid in $(ss -tlnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+'); do
         kill -9 $pid 2>/dev/null || true
     done
-    # Kill UDP
     for pid in $(ss -ulnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+'); do
         kill -9 $pid 2>/dev/null || true
     done
@@ -34,16 +39,11 @@ kill_port 8005
 
 sleep 2
 
-# Pull latest
-echo "Pulling latest changes..."
-git fetch origin
-git reset --hard origin/master
-
-# Build everything we need (solana-cli includes yacoin-shielded-cli binary)
+# Build
 echo "Building validator and CLI..."
 cargo build --release -p solana-validator -p solana-cli
 
-# Regenerate ALL genesis accounts (pool, tree, nullifiers, anchors)
+# Regenerate ALL genesis accounts
 echo ""
 echo "Regenerating genesis accounts..."
 rm -rf genesis-accounts/*.json
