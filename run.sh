@@ -39,9 +39,9 @@ echo "Pulling latest changes..."
 git fetch origin
 git reset --hard origin/master
 
-# Build everything we need
-echo "Building validator, CLI, and shielded CLI..."
-cargo build --release -p solana-validator -p solana-cli -p yacoin-shielded-cli
+# Build everything we need (solana-cli includes yacoin-shielded-cli binary)
+echo "Building validator and CLI..."
+cargo build --release -p solana-validator -p solana-cli
 
 # Regenerate ALL genesis accounts (pool, tree, nullifiers, anchors)
 echo ""
