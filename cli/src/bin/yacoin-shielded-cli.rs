@@ -500,12 +500,12 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     let mut tx = Transaction::new_unsigned(message);
     tx.sign(&[&payer], blockhash);
 
-    // Submit transaction with skip_preflight to bypass simulation issues
+    // Submit transaction - DON'T skip preflight so we can see errors
     use solana_rpc_client_api::config::RpcSendTransactionConfig;
     use solana_commitment_config::CommitmentConfig;
 
     let config = RpcSendTransactionConfig {
-        skip_preflight: true,
+        skip_preflight: false,  // Show actual errors!
         preflight_commitment: Some(CommitmentConfig::confirmed().commitment),
         ..Default::default()
     };
