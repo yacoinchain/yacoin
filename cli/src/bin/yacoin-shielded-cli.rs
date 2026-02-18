@@ -605,11 +605,34 @@ fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error:
     let mut tx = Transaction::new_unsigned(message);
     tx.sign(&[&payer], blockhash);
 
-    match client.send_and_confirm_transaction(&tx) {
+    // Skip preflight simulation to see actual on-chain error
+    use solana_rpc_client_api::config::RpcSendTransactionConfig;
+    use solana_commitment_config::CommitmentConfig;
+
+    let config = RpcSendTransactionConfig {
+        skip_preflight: true,
+        preflight_commitment: Some(CommitmentConfig::confirmed().commitment),
+        ..Default::default()
+    };
+
+    match client.send_transaction_with_config(&tx, config) {
         Ok(signature) => {
-            println!();
-            println!("Success! Transaction: {}", signature);
-            println!("Shielded pool initialized.");
+            println!("Transaction sent: {}", signature);
+            // Wait for confirmation
+            match client.confirm_transaction(&signature) {
+                Ok(confirmed) => {
+                    if confirmed {
+                        println!();
+                        println!("Success! Transaction: {}", signature);
+                        println!("Shielded pool initialized.");
+                    } else {
+                        println!("Transaction not confirmed. Check logs.");
+                    }
+                }
+                Err(e) => {
+                    println!("Confirmation error: {}", e);
+                }
+            }
         }
         Err(e) => {
             return Err(format!("Transaction failed: {}", e).into());
