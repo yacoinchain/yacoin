@@ -51,9 +51,10 @@ pub const NOTE_COMMITMENT_SIZE: usize = 32;
 /// Size of a nullifier
 pub const NULLIFIER_SIZE: usize = 32;
 
-/// Size of encrypted note ciphertext (full Sapling format)
-/// 564 bytes plaintext (1 lead + 11 diversifier + 8 value + 32 rseed + 512 memo) + 16 bytes tag = 580
-pub const ENC_CIPHERTEXT_SIZE: usize = 580;
+/// Size of encrypted note ciphertext (compact Sapling format - no memo)
+/// 52 bytes plaintext (1 lead + 11 diversifier + 8 value + 32 rseed) + 16 bytes AEAD tag = 68
+/// Full Sapling would be 580 bytes but doesn't fit in Solana's 1232-byte transaction limit
+pub const ENC_CIPHERTEXT_SIZE: usize = 68;
 
 /// Size of outgoing ciphertext
 pub const OUT_CIPHERTEXT_SIZE: usize = 80;

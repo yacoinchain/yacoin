@@ -480,8 +480,8 @@ mod tests {
         // Serialize exactly as CLI does
         let data = borsh::to_vec(&instruction).expect("serialize failed");
 
-        // Expected size: 1 (discriminant) + 8 (amount) + 32 + 32 + 32 + 580 + 80 + 192 = 957
-        assert_eq!(data.len(), 957, "Shield instruction size mismatch");
+        // Expected size: 1 (discriminant) + 8 (amount) + 32 + 32 + 32 + 68 + 80 + 192 = 445
+        assert_eq!(data.len(), 445, "Shield instruction size mismatch");
         assert_eq!(data[0], 0, "Wrong discriminant");
 
         // Deserialize exactly as native.rs does

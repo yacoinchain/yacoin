@@ -456,10 +456,10 @@ fn cmd_shield(amount: u64, wallet: &PathBuf, keypair: Option<&PathBuf>, url: &st
     println!("First byte (discriminant): {}", serialized_ix[0]);
     println!("Bytes 1-9 (amount): {:?}", &serialized_ix[1..9]);
     println!("Expected: discriminant=0, amount={:?}", amount.to_le_bytes());
-    // Expected size: 1 (discriminant) + 8 (amount) + 948 (OutputDescription) = 957
-    // OutputDescription: 32 (cv) + 32 (cmu) + 32 (epk) + 580 (enc) + 80 (out) + 192 (proof) = 948
-    if serialized_ix.len() != 957 {
-        println!("WARNING: Unexpected instruction size! Expected 957, got {}", serialized_ix.len());
+    // Expected size: 1 (discriminant) + 8 (amount) + 436 (OutputDescription) = 445
+    // OutputDescription: 32 (cv) + 32 (cmu) + 32 (epk) + 68 (enc) + 80 (out) + 192 (proof) = 436
+    if serialized_ix.len() != 445 {
+        println!("WARNING: Unexpected instruction size! Expected 445, got {}", serialized_ix.len());
     }
 
     let program_id = id::ID;
