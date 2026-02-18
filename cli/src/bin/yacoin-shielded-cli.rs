@@ -657,7 +657,7 @@ fn cmd_init_pool(keypair: &PathBuf, url: &str) -> Result<(), Box<dyn std::error:
 
 fn cmd_genesis_accounts(output: Option<PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
     use solana_pubkey::Pubkey;
-    use yacoin_shielded_transfer::id;
+    use yacoin_shielded_transfer::{id, state::ShieldedPoolState, accounts::{NullifierSetAccount, RecentAnchorsAccount}, commitment_tree::IncrementalMerkleTree};
     use base64::{Engine, prelude::BASE64_STANDARD};
 
     let program_id = id::ID;
@@ -684,51 +684,61 @@ fn cmd_genesis_accounts(output: Option<PathBuf>) -> Result<(), Box<dyn std::erro
     let nullifier_rent = std::cmp::max(min_rent, nullifier_size as u64 * rent_per_byte * 2);
     let anchor_rent = std::cmp::max(min_rent, anchor_size as u64 * rent_per_byte * 2);
 
-    // Create empty data (will be initialized by InitializePool)
-    let pool_data = vec![0u8; pool_size];
-    let tree_data = vec![0u8; tree_size];
-    let nullifier_data = vec![0u8; nullifier_size];
-    let anchor_data = vec![0u8; anchor_size];
+    // Create INITIALIZED state data - not zeros!
+    // Pool state: initialized with no authority (permissionless)
+    let pool_state = ShieldedPoolState::new([0u8; 32]);
+    let mut pool_data = borsh::to_vec(&pool_state)?;
+    pool_data.resize(pool_size, 0); // Pad to full size
 
-    let yaml = format!(r#"# YaCoin Shielded Pool Genesis Accounts
-# Generated for program ID: {}
-# Add this file to genesis with: --primordial-accounts-file <this-file>
+    // Commitment tree: empty but initialized
+    let tree = IncrementalMerkleTree::new();
+    let mut tree_data = borsh::to_vec(&tree)?;
+    tree_data.resize(tree_size, 0);
 
-{}:
-  owner: "{}"
-  balance: {}
-  data: "{}"
-  executable: false
+    // Nullifier set: empty but initialized
+    let nullifiers = NullifierSetAccount {
+        count: 0,
+        nullifiers: Vec::new(),
+        bloom_filter: None,
+    };
+    let mut nullifier_data = borsh::to_vec(&nullifiers)?;
+    nullifier_data.resize(nullifier_size, 0);
 
-{}:
-  owner: "{}"
-  balance: {}
-  data: "{}"
-  executable: false
+    // Recent anchors: initialized with empty tree root
+    let anchors = RecentAnchorsAccount {
+        anchors: vec![tree.root()],
+        position: 1,
+        max_size: 100,
+    };
+    let mut anchor_data = borsh::to_vec(&anchors)?;
+    anchor_data.resize(anchor_size, 0);
 
-{}:
-  owner: "{}"
-  balance: {}
-  data: "{}"
-  executable: false
+    // Generate individual JSON files for each account (same format as solana-test-validator expects)
+    let output_dir = output.unwrap_or_else(|| PathBuf::from("genesis-accounts"));
+    std::fs::create_dir_all(&output_dir)?;
 
-{}:
-  owner: "{}"
-  balance: {}
-  data: "{}"
-  executable: false
-"#,
-        program_id,
-        pool_address, program_id, pool_rent, BASE64_STANDARD.encode(&pool_data),
-        tree_address, program_id, tree_rent, BASE64_STANDARD.encode(&tree_data),
-        nullifier_address, program_id, nullifier_rent, BASE64_STANDARD.encode(&nullifier_data),
-        anchor_address, program_id, anchor_rent, BASE64_STANDARD.encode(&anchor_data),
-    );
+    // Helper to create JSON account file
+    let write_account = |path: &PathBuf, pubkey: &Pubkey, lamports: u64, data: &[u8]| -> Result<(), Box<dyn std::error::Error>> {
+        let json = serde_json::json!({
+            "pubkey": pubkey.to_string(),
+            "account": {
+                "lamports": lamports,
+                "data": [BASE64_STANDARD.encode(data), "base64"],
+                "owner": program_id.to_string(),
+                "executable": false,
+                "rentEpoch": 0
+            }
+        });
+        std::fs::write(path, serde_json::to_string_pretty(&json)?)?;
+        Ok(())
+    };
 
-    let output_path = output.unwrap_or_else(|| PathBuf::from("shielded-pool-genesis.yaml"));
-    std::fs::write(&output_path, &yaml)?;
+    write_account(&output_dir.join(format!("{}.json", pool_address)), &pool_address, pool_rent, &pool_data)?;
+    write_account(&output_dir.join(format!("{}.json", tree_address)), &tree_address, tree_rent, &tree_data)?;
+    write_account(&output_dir.join(format!("{}.json", nullifier_address)), &nullifier_address, nullifier_rent, &nullifier_data)?;
+    write_account(&output_dir.join(format!("{}.json", anchor_address)), &anchor_address, anchor_rent, &anchor_data)?;
 
-    println!("Generated genesis accounts file: {}", output_path.display());
+    println!("Generated genesis account files in: {}", output_dir.display());
     println!();
     println!("Program ID: {}", program_id);
     println!("Pool PDA: {} ({} lamports)", pool_address, pool_rent);
@@ -739,9 +749,9 @@ fn cmd_genesis_accounts(output: Option<PathBuf>) -> Result<(), Box<dyn std::erro
     println!("Total lamports needed: {}", pool_rent + tree_rent + nullifier_rent + anchor_rent);
     println!();
     println!("To use:");
-    println!("  1. Regenerate genesis with: --primordial-accounts-file {}", output_path.display());
-    println!("  2. Start validator with new ledger");
-    println!("  3. Run: yacoin-shielded-cli init-pool --keypair <authority-keypair>");
+    println!("  1. Copy JSON files to genesis-accounts/");
+    println!("  2. Start validator with: --account-dir genesis-accounts --reset");
+    println!("  3. Pool is pre-initialized - ready to use immediately!");
 
     Ok(())
 }
