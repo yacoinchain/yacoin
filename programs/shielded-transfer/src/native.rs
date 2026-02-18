@@ -43,12 +43,32 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
     let instruction_context = transaction_context.get_current_instruction_context()?;
 
     let data = instruction_context.get_instruction_data();
+
+    // Debug: log instruction data
+    solana_program_runtime::ic_msg!(
+        invoke_context,
+        "Shielded transfer: received {} bytes, first byte (discriminant): {}",
+        data.len(),
+        if data.is_empty() { 255 } else { data[0] }
+    );
+
     if data.is_empty() {
         return Err(InstructionError::InvalidInstructionData);
     }
 
-    let instruction = ShieldedInstruction::try_from_slice(data)
-        .map_err(|_| InstructionError::InvalidInstructionData)?;
+    let instruction = match ShieldedInstruction::try_from_slice(data) {
+        Ok(ix) => ix,
+        Err(e) => {
+            solana_program_runtime::ic_msg!(
+                invoke_context,
+                "Shielded transfer: deserialization failed: {:?}, data len: {}, first 16 bytes: {:?}",
+                e,
+                data.len(),
+                &data[..std::cmp::min(16, data.len())]
+            );
+            return Err(InstructionError::InvalidInstructionData);
+        }
+    };
 
     let num_accounts = instruction_context.get_number_of_instruction_accounts();
 
