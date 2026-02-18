@@ -9,13 +9,28 @@ pkill -9 -f "yacoin" 2>/dev/null || true
 pkill -9 -f "solana" 2>/dev/null || true
 pkill -9 -f "validator" 2>/dev/null || true
 
-# Kill processes on validator ports
-fuser -k 8899/tcp 2>/dev/null || true
-fuser -k 8900/tcp 2>/dev/null || true
-fuser -k 9900/tcp 2>/dev/null || true
-fuser -k 8000/tcp 2>/dev/null || true
-fuser -k 8001/tcp 2>/dev/null || true
-fuser -k 8002/tcp 2>/dev/null || true
+# Kill processes on validator ports using ss (more reliable than fuser)
+kill_port() {
+    local port=$1
+    # Kill TCP
+    for pid in $(ss -tlnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+'); do
+        kill -9 $pid 2>/dev/null || true
+    done
+    # Kill UDP
+    for pid in $(ss -ulnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+'); do
+        kill -9 $pid 2>/dev/null || true
+    done
+}
+
+kill_port 8899
+kill_port 8900
+kill_port 9900
+kill_port 8000
+kill_port 8001
+kill_port 8002
+kill_port 8003
+kill_port 8004
+kill_port 8005
 
 sleep 2
 
