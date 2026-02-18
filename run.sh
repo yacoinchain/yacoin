@@ -39,12 +39,21 @@ echo "Pulling latest changes..."
 git fetch origin
 git reset --hard origin/master
 
-# Build only what we need
-echo "Building validator and CLI..."
-cargo build --release -p solana-validator -p solana-cli
+# Build everything we need
+echo "Building validator, CLI, and shielded CLI..."
+cargo build --release -p solana-validator -p solana-cli -p yacoin-shielded-cli
+
+# Regenerate ALL genesis accounts (pool, tree, nullifiers, anchors)
+echo ""
+echo "Regenerating genesis accounts..."
+rm -rf genesis-accounts/*.json
+./target/release/yacoin-shielded-cli genesis-accounts -o genesis-accounts
 
 echo ""
 echo "Build complete!"
+echo ""
+echo "Genesis accounts created:"
+ls -la genesis-accounts/
 echo ""
 echo "To start validator:  ./target/release/yacoin-test-validator --reset --account-dir genesis-accounts"
 echo "To test shield:      ./target/release/yacoin-shielded-cli shield --amount 100000000 --wallet ~/.yacoin/shielded-wallet.json --keypair ~/.config/solana/id.json"
