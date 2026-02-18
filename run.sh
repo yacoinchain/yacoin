@@ -15,29 +15,33 @@ echo "Stopping any running validators..."
 pkill -9 -f "yacoin" 2>/dev/null || true
 pkill -9 -f "solana" 2>/dev/null || true
 pkill -9 -f "validator" 2>/dev/null || true
+sleep 1
 
-# Kill processes on validator ports
-kill_port() {
-    local port=$1
-    for pid in $(ss -tlnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+'); do
+# Kill ALL processes on validator ports (aggressive)
+for port in 8000 8001 8002 8003 8004 8005 8899 8900 9900; do
+    # Kill by ss TCP
+    for pid in $(ss -tlnp 2>/dev/null | grep ":$port" | grep -oP 'pid=\K[0-9]+' | sort -u); do
         kill -9 $pid 2>/dev/null || true
     done
-    for pid in $(ss -ulnp 2>/dev/null | grep ":$port " | grep -oP 'pid=\K[0-9]+'); do
+    # Kill by ss UDP
+    for pid in $(ss -ulnp 2>/dev/null | grep ":$port" | grep -oP 'pid=\K[0-9]+' | sort -u); do
         kill -9 $pid 2>/dev/null || true
     done
-}
-
-kill_port 8899
-kill_port 8900
-kill_port 9900
-kill_port 8000
-kill_port 8001
-kill_port 8002
-kill_port 8003
-kill_port 8004
-kill_port 8005
+    # Kill by lsof as backup
+    for pid in $(lsof -ti:$port 2>/dev/null); do
+        kill -9 $pid 2>/dev/null || true
+    done
+done
 
 sleep 2
+
+# Verify ports are free
+for port in 8000 8899; do
+    if ss -tlnp | grep -q ":$port"; then
+        echo "WARNING: Port $port still in use!"
+        ss -tlnp | grep ":$port"
+    fi
+done
 
 # Build
 echo "Building validator and CLI..."
@@ -55,5 +59,14 @@ echo ""
 echo "Genesis accounts created:"
 ls -la genesis-accounts/
 echo ""
-echo "To start validator:  ./target/release/yacoin-test-validator --reset --account-dir genesis-accounts"
-echo "To test shield:      ./target/release/yacoin-shielded-cli shield --amount 100000000 --wallet ~/.yacoin/shielded-wallet.json --keypair ~/.config/solana/id.json"
+
+# Auto-start validator if --start flag is passed
+if [ "$1" = "--start" ] || [ "$1" = "-s" ]; then
+    echo "Starting validator..."
+    ./target/release/yacoin-test-validator --reset --account-dir genesis-accounts
+else
+    echo "To start validator:  ./target/release/yacoin-test-validator --reset --account-dir genesis-accounts"
+    echo "Or run:              bash run.sh --start"
+    echo ""
+    echo "To test shield:      ./target/release/yacoin-shielded-cli shield --amount 100000000 --wallet ~/.yacoin/shielded-wallet.json --keypair ~/.config/solana/id.json"
+fi
