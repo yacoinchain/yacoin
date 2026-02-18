@@ -5,10 +5,18 @@ echo "=== YaCoin v2 Build & Run ==="
 
 # Kill any existing validator processes
 echo "Stopping any running validators..."
-pkill -9 -f "yacoin-validator" 2>/dev/null || true
-pkill -9 -f "yacoin-test-validator" 2>/dev/null || true
-pkill -9 -f "solana-validator" 2>/dev/null || true
-pkill -9 -f "solana-test-validator" 2>/dev/null || true
+pkill -9 -f "yacoin" 2>/dev/null || true
+pkill -9 -f "solana" 2>/dev/null || true
+pkill -9 -f "validator" 2>/dev/null || true
+
+# Kill processes on validator ports
+fuser -k 8899/tcp 2>/dev/null || true
+fuser -k 8900/tcp 2>/dev/null || true
+fuser -k 9900/tcp 2>/dev/null || true
+fuser -k 8000/tcp 2>/dev/null || true
+fuser -k 8001/tcp 2>/dev/null || true
+fuser -k 8002/tcp 2>/dev/null || true
+
 sleep 2
 
 # Pull latest
