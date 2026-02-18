@@ -14,6 +14,7 @@
 use solana_program_runtime::declare_process_instruction;
 use solana_program_runtime::solana_sbpf::vm::ContextObject;
 use solana_instruction_error::InstructionError;
+use solana_svm_log_collector::ic_msg;
 use borsh::BorshDeserialize;
 
 use crate::{
@@ -45,7 +46,7 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
     let data = instruction_context.get_instruction_data();
 
     // Debug: log instruction data
-    solana_program_runtime::ic_msg!(
+    ic_msg!(
         invoke_context,
         "Shielded transfer: received {} bytes, first byte (discriminant): {}",
         data.len(),
@@ -59,7 +60,7 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
     let instruction = match ShieldedInstruction::try_from_slice(data) {
         Ok(ix) => ix,
         Err(e) => {
-            solana_program_runtime::ic_msg!(
+            ic_msg!(
                 invoke_context,
                 "Shielded transfer: deserialization failed: {:?}, data len: {}, first 16 bytes: {:?}",
                 e,

@@ -12,6 +12,7 @@ edition = { workspace = true }
 solana-program-runtime = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-instruction-error = { workspace = true }
+solana-svm-log-collector = { workspace = true, optional = true }
 
 # Sapling cryptographic primitives
 bellman = { version = "0.14", default-features = false, features = ["groth16"] }
@@ -53,7 +54,7 @@ default = ["sapling"]
 # Enable Sapling integration
 sapling = ["dep:zcash_proofs", "dep:zcash_primitives"]
 # Enable native runtime entrypoint (for builtin deployment)
-native = ["agave-unstable-api"]
+native = ["agave-unstable-api", "dep:solana-svm-log-collector"]
 # Disable crypto for on-chain (BPF) builds
 no-crypto = []
 # Disable entrypoint for testing
