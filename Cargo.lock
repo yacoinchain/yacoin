@@ -14541,6 +14541,7 @@ dependencies = [
  "solana-instruction-error",
  "solana-program-runtime",
  "solana-pubkey 4.0.0",
+ "solana-svm-log-collector",
  "subtle",
  "thiserror 2.0.18",
  "zcash_primitives",

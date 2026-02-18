@@ -44,37 +44,33 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
     let instruction_context = transaction_context.get_current_instruction_context()?;
 
     let data = instruction_context.get_instruction_data();
-
-    // Debug: log instruction data
-    ic_msg!(
-        invoke_context,
-        "Shielded transfer: received {} bytes, first byte (discriminant): {}",
-        data.len(),
-        if data.is_empty() { 255 } else { data[0] }
-    );
-
     if data.is_empty() {
+        ic_msg!(invoke_context, "Shielded: empty instruction data");
         return Err(InstructionError::InvalidInstructionData);
     }
+
+    // Debug: log instruction data info
+    ic_msg!(invoke_context, "Shielded: data len={}, discriminant={}", data.len(), data[0]);
 
     let instruction = match ShieldedInstruction::try_from_slice(data) {
         Ok(ix) => ix,
         Err(e) => {
-            ic_msg!(
-                invoke_context,
-                "Shielded transfer: deserialization failed: {:?}, data len: {}, first 16 bytes: {:?}",
-                e,
-                data.len(),
-                &data[..std::cmp::min(16, data.len())]
-            );
+            ic_msg!(invoke_context, "Shielded: borsh error: {:?}", e);
+            // Log first 32 bytes as hex for debugging
+            let hex_dump: String = data[..data.len().min(32)].iter()
+                .map(|b| format!("{:02x}", b))
+                .collect();
+            ic_msg!(invoke_context, "Shielded: first 32 bytes hex: {}", hex_dump);
             return Err(InstructionError::InvalidInstructionData);
         }
     };
 
     let num_accounts = instruction_context.get_number_of_instruction_accounts();
+    ic_msg!(invoke_context, "Shielded: instruction parsed, accounts={}", num_accounts);
 
     match instruction {
         ShieldedInstruction::Shield { amount, output } => {
+            ic_msg!(invoke_context, "Shield: amount={}", amount);
             // Accounts: 0=Funder, 1=Pool, 2=Tree, 3=System Program
             if num_accounts < 3 {
                 return Err(InstructionError::MissingAccount);
@@ -445,6 +441,7 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{OutputDescription, ENC_CIPHERTEXT_SIZE, OUT_CIPHERTEXT_SIZE, GROTH_PROOF_SIZE};
 
     #[test]
     fn test_compute_units() {
@@ -460,5 +457,65 @@ mod tests {
         // Should scale linearly
         assert!(units_2_2 > units_1_1);
         assert!(units_1_1 > 0);
+    }
+
+    #[test]
+    fn test_shield_instruction_deserialization() {
+        // This test verifies that Shield instructions can be deserialized
+        // exactly as the native entrypoint does it
+        let output = OutputDescription {
+            cv: [1u8; 32],
+            cmu: [2u8; 32],
+            ephemeral_key: [3u8; 32],
+            enc_ciphertext: [0u8; ENC_CIPHERTEXT_SIZE],
+            out_ciphertext: [0u8; OUT_CIPHERTEXT_SIZE],
+            zkproof: [0u8; GROTH_PROOF_SIZE],
+        };
+
+        let instruction = ShieldedInstruction::Shield {
+            amount: 100_000_000,
+            output,
+        };
+
+        // Serialize exactly as CLI does
+        let data = borsh::to_vec(&instruction).expect("serialize failed");
+
+        // Expected size: 1 (discriminant) + 8 (amount) + 32 + 32 + 32 + 580 + 80 + 192 = 957
+        assert_eq!(data.len(), 957, "Shield instruction size mismatch");
+        assert_eq!(data[0], 0, "Wrong discriminant");
+
+        // Deserialize exactly as native.rs does
+        let deserialized = ShieldedInstruction::try_from_slice(&data)
+            .expect("deserialize failed - this is what native.rs does");
+
+        match deserialized {
+            ShieldedInstruction::Shield { amount, output: out } => {
+                assert_eq!(amount, 100_000_000);
+                assert_eq!(out.cv, [1u8; 32]);
+                assert_eq!(out.cmu, [2u8; 32]);
+            }
+            _ => panic!("Wrong instruction type"),
+        }
+    }
+
+    #[test]
+    fn test_init_pool_deserialization() {
+        let instruction = ShieldedInstruction::InitializePool {
+            authority: [42u8; 32],
+        };
+
+        let data = borsh::to_vec(&instruction).expect("serialize failed");
+        assert_eq!(data.len(), 33);
+        assert_eq!(data[0], 3);
+
+        let deserialized = ShieldedInstruction::try_from_slice(&data)
+            .expect("deserialize failed");
+
+        match deserialized {
+            ShieldedInstruction::InitializePool { authority } => {
+                assert_eq!(authority, [42u8; 32]);
+            }
+            _ => panic!("Wrong instruction type"),
+        }
     }
 }

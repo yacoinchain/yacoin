@@ -5,7 +5,19 @@
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use crate::{SpendDescription, OutputDescription};
+
+#[cfg(feature = "sapling")]
 use crate::crypto::universal_asset::ShieldedAsset;
+
+// Stub type when sapling feature is disabled
+#[cfg(not(feature = "sapling"))]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+pub struct ShieldedAsset {
+    pub asset_type: u8,
+    pub asset_id: [u8; 32],
+    pub secondary_id: [u8; 32],
+    pub amount: u64,
+}
 
 /// Shielded transfer instructions
 #[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
@@ -306,12 +318,12 @@ mod tests {
         //   - 32 bytes: cv
         //   - 32 bytes: cmu
         //   - 32 bytes: ephemeral_key
-        //   - 68 bytes: enc_ciphertext (ENC_CIPHERTEXT_SIZE)
+        //   - 580 bytes: enc_ciphertext (ENC_CIPHERTEXT_SIZE) - full Sapling with memo
         //   - 80 bytes: out_ciphertext (OUT_CIPHERTEXT_SIZE)
         //   - 192 bytes: zkproof (GROTH_PROOF_SIZE)
-        // Total: 1 + 8 + 32 + 32 + 32 + 68 + 80 + 192 = 445 bytes
+        // Total: 1 + 8 + 32 + 32 + 32 + 580 + 80 + 192 = 957 bytes
         let expected_size = 1 + 8 + 32 + 32 + 32 + ENC_CIPHERTEXT_SIZE + OUT_CIPHERTEXT_SIZE + GROTH_PROOF_SIZE;
-        assert_eq!(expected_size, 445);
+        assert_eq!(expected_size, 957);
         assert_eq!(serialized.len(), expected_size, "Shield instruction size mismatch");
 
         // First byte should be discriminant 0
