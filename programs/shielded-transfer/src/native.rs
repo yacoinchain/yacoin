@@ -76,22 +76,18 @@ declare_process_instruction!(Entrypoint, DEFAULT_COMPUTE_UNITS, |invoke_context|
                 return Err(InstructionError::MissingAccount);
             }
 
-            // Verify funder is a signer and transfer lamports
+            // Verify funder is a signer
             {
-                let mut funder = instruction_context
+                let funder = instruction_context
                     .try_borrow_instruction_account(0)?;
                 if !funder.is_signer() {
                     return Err(InstructionError::MissingRequiredSignature);
                 }
-                // Debit funder
-                funder.checked_sub_lamports(amount)?;
             }
-            {
-                let mut pool = instruction_context
-                    .try_borrow_instruction_account(1)?;
-                // Credit pool
-                pool.checked_add_lamports(amount)?;
-            }
+
+            // Note: Lamport transfer is done via System Program instruction
+            // BEFORE this instruction. The CLI handles this by including
+            // a system_instruction::transfer in the same transaction.
 
             // Load state
             let pool_data = instruction_context
